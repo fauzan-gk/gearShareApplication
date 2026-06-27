@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'screens/category_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -10,10 +11,13 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(title: const Text('GearShare')),
-        body: const Center(child: Text('GearShare')),
+      title: 'GearShare',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Color(0xFFF4820A)),
+        useMaterial3: true,
       ),
+      home: const CategoryScreen(),
     );
   }
 }
