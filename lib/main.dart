@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-//import 'package:gearshare/screens/browse_search_screen.dart';
-import 'package:gearshare/screens/my_listings_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,13 +10,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'GearShare',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Color(0xFFF4820A)),
-        useMaterial3: true,
+      home: Scaffold(
+        appBar: AppBar(title: const Text('GearShare')),
+        body: const Center(child: Text('GearShare')),
       ),
-      home: const MyListingsScreen(),
     );
   }
 }
