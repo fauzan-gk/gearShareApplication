@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:gearshare/screens/add_item_screen.dart';
+//import 'package:gearshare/screens/add_item_screen.dart';
+//import 'package:gearshare/screens/splash_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -10,10 +13,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(title: const Text('GearShare')),
-        body: const Center(child: Text('GearShare')),
-      ),
+      debugShowCheckedModeBanner: false,
+      home: AddItemScreen(),
     );
   }
 }
