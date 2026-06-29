@@ -1,17 +1,54 @@
 # gearshare
 
-A new Flutter project.
+---
 
-## Getting Started
+**Phase 1 — UI (30%)**
 
-This project is a starting point for a Flutter application.
+- [x] Splash Screen
+- [ ] Login Screen
+- [ ] Register Screen
+- [ ] Forgot Password Screen
+- [ ] Home Screen
+- [ ] Item Detail Screen
+- [ ] Rental Request Screen
+- [ ] Manage Requests Screen
+- [ ] Add Item Screen
+- [ ] Edit Item Screen
+- [ ] My Listings Screen
+- [ ] Rental History Screen
+- [ ] Browse/Search Screen
+- [ ] Category Screen
+- [ ] Profile Screen
+- [ ] Edit Profile Screen
+- [ ] Ratings Screen
+- [ ] Settings Screen
 
-A few resources to get you started if this is your first Flutter project:
+---
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+**Phase 2 — Navigation (20%)**
+- [ ] Setup all named routes in main.dart
+- [ ] Connect all screens together
+- [ ] Bottom Navigation Bar
+- [ ] Drawer Navigation
+- [ ] Pass data between screens
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+---
+
+**Phase 3 — Firebase (30%)**
+- [ ] Firebase project setup
+- [ ] Email/Password Authentication
+- [ ] Login / Register / Forgot Password
+- [ ] Firestore CRUD for listings
+- [ ] Firestore CRUD for rental requests
+- [ ] Firebase Storage for images
+- [ ] Real-time data updates
+
+---
+
+**Phase 4 — Services (20%)**
+- [ ] Camera / Gallery image picker
+- [ ] GPS Location
+- [ ] Google Maps integration
+- [ ] Local Notifications
+
+---
