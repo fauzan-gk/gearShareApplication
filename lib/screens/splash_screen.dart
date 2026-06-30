@@ -28,6 +28,7 @@ class _SplashScreenState extends State<SplashScreen> {
             // App Icon placeholder
             Container(
               width: 100,
+
               height: 100,
               decoration: BoxDecoration(
                 color: const Color(0xFFF4820A), // Orange
