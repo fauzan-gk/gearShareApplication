@@ -12,12 +12,12 @@
 - [ ] Item Detail Screen
 - [ ] Rental Request Screen
 - [ ] Manage Requests Screen
-- [ ] Add Item Screen
-- [ ] Edit Item Screen
-- [ ] My Listings Screen
-- [ ] Rental History Screen
-- [ ] Browse/Search Screen
-- [ ] Category Screen
+- [x] Add Item Screen
+- [x] Edit Item Screen
+- [x] My Listings Screen
+- [x] Rental History Screen
+- [x] Browse/Search Screen
+- [x] Category Screen
 - [ ] Profile Screen
 - [ ] Edit Profile Screen
 - [ ] Ratings Screen
