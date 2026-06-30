@@ -15,11 +15,11 @@ import 'screens/browse_search_screen.dart';
 import 'screens/category_screen.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const GearShareApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class GearShareApp extends StatelessWidget {
+  const GearShareApp({super.key});
 
   @override
   Widget build(BuildContext context) {
