@@ -154,7 +154,7 @@ class _BrowseSearchScreenState extends State<BrowseSearchScreen> {
             foregroundColor: Colors.white,
             floating: true, // reappears when user scrolls up
             snap: true, // snaps fully open, never half-visible
-            expandedHeight: 140,
+            expandedHeight: 160,
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 color: AppColors.primary,
