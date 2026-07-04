@@ -13,6 +13,11 @@ import 'screens/my_listings_screen.dart';
 import 'screens/rental_history_screen.dart';
 import 'screens/browse_search_screen.dart';
 import 'screens/category_screen.dart';
+import 'constants/app_colors.dart';
+import 'screens/profile_screen.dart';
+import 'screens/edit_profile_screen.dart';
+import 'screens/ratings_screen.dart';
+import 'screens/settings_screen.dart';
 
 void main() {
   runApp(const GearShareApp());
@@ -27,8 +32,15 @@ class GearShareApp extends StatelessWidget {
       title: 'GearShare',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primaryColor: const Color(0xFF1B2A4A),
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFF4820A)),
+        // Blue is now the seed/primary color of the whole app's color scheme.
+        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
+        primaryColor: AppColors.primary,
+        scaffoldBackgroundColor: AppColors.background,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: AppColors.navy,
+          foregroundColor: Colors.white,
+        ),
+        useMaterial3: true,
       ),
 
       home: const SplashScreen(),
@@ -44,6 +56,10 @@ class GearShareApp extends StatelessWidget {
         '/rental-history': (context) => const RentalHistoryScreen(),
         '/browse-search': (context) => const BrowseSearchScreen(),
         '/category': (context) => const CategoryScreen(),
+        '/profile': (context) => const ProfileScreen(),
+        '/edit-profile': (context) => const EditProfileScreen(),
+        '/ratings': (context) => const RatingsScreen(),
+        '/settings': (context) => const SettingsScreen(),
       },
 
       onGenerateRoute: (settings) {
