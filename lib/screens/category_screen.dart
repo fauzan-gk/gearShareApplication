@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
+import '../constants/custom_app_bar.dart';
+import '../constants/app_drawer.dart';
 
+// ─────────────────────────────────────────────────────────────
+// DATA MODEL
+// One CategoryModel = one tile in the grid (name, icon, item count).
+// ─────────────────────────────────────────────────────────────
 class CategoryModel {
   final String name;
   final IconData icon;
@@ -13,8 +19,23 @@ class CategoryModel {
   });
 }
 
-class CategoryScreen extends StatelessWidget {
+// ─────────────────────────────────────────────────────────────
+// CATEGORY SCREEN
+// Changed from StatelessWidget to StatefulWidget — the search text
+// now needs to be STORED somewhere and trigger a rebuild every time
+// it changes, which only a State object (with setState) can do.
+// A StatelessWidget literally cannot hold changing data like this.
+// ─────────────────────────────────────────────────────────────
+class CategoryScreen extends StatefulWidget {
   const CategoryScreen({super.key});
+
+  @override
+  State<CategoryScreen> createState() => _CategoryScreenState();
+}
+
+class _CategoryScreenState extends State<CategoryScreen> {
+  // Holds whatever the user has typed into the search box so far.
+  String _searchQuery = '';
 
   static const List<CategoryModel> _categories = [
     CategoryModel(
@@ -55,128 +76,178 @@ class CategoryScreen extends StatelessWidget {
     ),
   ];
 
+  // A getter — recomputes the filtered list fresh every time the
+  // widget rebuilds (i.e. every time setState() runs after typing).
+  // Same pattern as _filteredItems in BrowseSearchScreen.
+  List<CategoryModel> get _filteredCategories {
+    if (_searchQuery.isEmpty) return _categories;
+    return _categories
+        .where((c) => c.name.toLowerCase().contains(_searchQuery.toLowerCase()))
+        .toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      appBar: const CustomAppBar(title: 'Browse Categories'),
+      drawer: const AppDrawer(currentRoute: '/category'),
 
-      // ── AppBar ──────────────────────────────────────────────
-      // Orange AppBar — makes orange the dominant first impression
-      appBar: AppBar(
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          'Browse Categories',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-          ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── SEARCH CARD ─────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.navy.withOpacity(0.08),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  // THIS is the fix — every keystroke now calls setState(),
+                  // which updates _searchQuery and triggers a rebuild.
+                  // Without onChanged, Flutter has no way to know you typed
+                  // anything at all.
+                  onChanged: (value) => setState(() => _searchQuery = value),
+                  decoration: InputDecoration(
+                    hintText: 'Find a category...',
+                    hintStyle: const TextStyle(color: AppColors.textHint),
+                    prefixIcon: const Icon(
+                      Icons.search,
+                      color: AppColors.textSecondary,
+                    ),
+                    filled: true,
+                    fillColor: AppColors.surface,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(
+                        color: AppColors.primary,
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                  style: const TextStyle(color: AppColors.textPrimary),
+                ),
+              ),
+            ),
+
+            // ── SECTION LABEL ────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+              child: Text(
+                _searchQuery.isEmpty ? 'All Categories' : 'Search Results',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+
+            // ── GRID or EMPTY STATE ───────────────────────────
+            _filteredCategories.isEmpty
+                ? _buildEmptyState()
+                : Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                    child: GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _filteredCategories.length,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 14,
+                            mainAxisSpacing: 14,
+                            childAspectRatio: 1.15,
+                          ),
+                      itemBuilder: (context, index) {
+                        final category = _filteredCategories[index];
+                        return _CategoryCard(
+                          category: category,
+                          onTap: () => Navigator.pushNamed(
+                            context,
+                            '/browse-search',
+                            arguments: {'category': category.name},
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+          ],
         ),
-        centerTitle: true,
       ),
+    );
+  }
 
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  // Shown when the typed search text matches NO category at all.
+  Widget _buildEmptyState() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 60),
+      child: Column(
         children: [
-          // ── Orange-to-white gradient header section ──────────
-          // This connects the AppBar to the body visually
-          Container(
-            width: double.infinity,
-            color: AppColors.primary,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Find a category...',
-                hintStyle: const TextStyle(color: Colors.white60),
-                prefixIcon: const Icon(Icons.search, color: Colors.white70),
-                filled: true,
-                fillColor: Colors.white.withOpacity(0.2),
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.white, width: 1.5),
-                ),
-              ),
-              style: const TextStyle(color: Colors.white),
+          Icon(Icons.search_off_rounded, size: 56, color: AppColors.textHint),
+          const SizedBox(height: 14),
+          const Text(
+            'No categories found',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
             ),
           ),
-
-          // ── Section Label ────────────────────────────────────
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 20, 16, 12),
-            child: Text(
-              'All Categories',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ),
-
-          // ── Grid ─────────────────────────────────────────────
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: GridView.builder(
-                itemCount: _categories.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 1.15,
-                ),
-                itemBuilder: (context, index) {
-                  return _CategoryCard(category: _categories[index]);
-                },
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 16),
         ],
       ),
     );
   }
 }
 
-// ── Category Card ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// CATEGORY CARD WIDGET
+// ─────────────────────────────────────────────────────────────
 class _CategoryCard extends StatelessWidget {
   final CategoryModel category;
-  const _CategoryCard({required this.category});
+  final VoidCallback onTap;
+
+  const _CategoryCard({required this.category, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () {},
+      onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: AppColors.navy.withOpacity(0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Orange icon box
             Container(
               width: 52,
               height: 52,
@@ -186,9 +257,7 @@ class _CategoryCard extends StatelessWidget {
               ),
               child: Icon(category.icon, color: AppColors.primary, size: 26),
             ),
-
             const SizedBox(height: 10),
-
             Text(
               category.name,
               style: const TextStyle(
@@ -198,9 +267,7 @@ class _CategoryCard extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
-
             const SizedBox(height: 3),
-
             Text(
               '${category.itemCount} items',
               style: const TextStyle(
