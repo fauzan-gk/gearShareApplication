@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'firebase_options.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -19,7 +22,9 @@ import 'screens/edit_profile_screen.dart';
 import 'screens/ratings_screen.dart';
 import 'screens/settings_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const GearShareApp());
 }
 
@@ -32,7 +37,6 @@ class GearShareApp extends StatelessWidget {
       title: 'GearShare',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        // Blue is now the seed/primary color of the whole app's color scheme.
         colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
         primaryColor: AppColors.primary,
         scaffoldBackgroundColor: AppColors.background,
@@ -42,9 +46,7 @@ class GearShareApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-
       home: const SplashScreen(),
-
       routes: {
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
@@ -61,7 +63,6 @@ class GearShareApp extends StatelessWidget {
         '/ratings': (context) => const RatingsScreen(),
         '/settings': (context) => const SettingsScreen(),
       },
-
       onGenerateRoute: (settings) {
         if (settings.name == '/item-detail') {
           final args = settings.arguments as Map<String, String>;
@@ -72,7 +73,6 @@ class GearShareApp extends StatelessWidget {
             ),
           );
         }
-
         if (settings.name == '/rental-request') {
           final args = settings.arguments as Map<String, String>;
           return MaterialPageRoute(
@@ -82,13 +82,11 @@ class GearShareApp extends StatelessWidget {
             ),
           );
         }
-
         if (settings.name == '/edit-item') {
           return MaterialPageRoute(
             builder: (context) => const EditItemScreen(),
           );
         }
-
         return MaterialPageRoute(
           builder: (context) =>
               const Scaffold(body: Center(child: Text('Page not found'))),
