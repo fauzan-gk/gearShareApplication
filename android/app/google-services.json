@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "962986428230",
+    "project_id": "gearshareapp-f6988",
+    "storage_bucket": "gearshareapp-f6988.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:962986428230:android:3d6ddd62a57d46a5510747",
+        "android_client_info": {
+          "package_name": "com.example.gearshare"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyArhGobz4cLqOBd0g-46rfu9INSpeCm-QU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
