@@ -272,29 +272,29 @@ class _RentalRequestScreenState extends State<RentalRequestScreen> {
               ),
 
               // Radio buttons for pickup method
-              RadioListTile<String>(
-                contentPadding: EdgeInsets.zero,
-                activeColor: const Color(0xFFF4820A),
-                title: const Text('Self Pickup'),
-                value: 'Self Pickup',
+              RadioGroup<String>(
                 groupValue: _pickupMethod,
                 onChanged: (value) {
                   setState(() {
                     _pickupMethod = value!;
                   });
                 },
-              ),
-              RadioListTile<String>(
-                contentPadding: EdgeInsets.zero,
-                activeColor: const Color(0xFFF4820A),
-                title: const Text('Delivery (extra charges may apply)'),
-                value: 'Delivery',
-                groupValue: _pickupMethod,
-                onChanged: (value) {
-                  setState(() {
-                    _pickupMethod = value!;
-                  });
-                },
+                child: Column(
+                  children: [
+                    const RadioListTile<String>(
+                      contentPadding: EdgeInsets.zero,
+                      activeColor: Color(0xFFF4820A),
+                      title: Text('Self Pickup'),
+                      value: 'Self Pickup',
+                    ),
+                    const RadioListTile<String>(
+                      contentPadding: EdgeInsets.zero,
+                      activeColor: Color(0xFFF4820A),
+                      title: Text('Delivery (extra charges may apply)'),
+                      value: 'Delivery',
+                    ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 12),

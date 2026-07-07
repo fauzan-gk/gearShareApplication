@@ -391,7 +391,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.navy.withOpacity(0.08),
+                        color: AppColors.navy.withValues(alpha: 0.08),
                         blurRadius: 20,
                         offset: const Offset(0, 8),
                       ),
@@ -436,7 +436,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Icon(
                         Icons.bolt_rounded,
                         size: 100,
-                        color: Colors.white.withOpacity(0.1),
+                        color: Colors.white.withValues(alpha: 0.1),
                       ),
                     ),
                     Positioned(
@@ -445,7 +445,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Icon(
                         Icons.explore_rounded,
                         size: 80,
-                        color: Colors.white.withOpacity(0.08),
+                        color: Colors.white.withValues(alpha: 0.08),
                       ),
                     ),
                     Padding(
@@ -462,7 +462,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: Colors.white.withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: const Text(
@@ -489,7 +489,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           Text(
                             'Find the most rented equipment in your area',
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.8),
+                              color: Colors.white.withValues(alpha: 0.8),
                               fontSize: 12,
                             ),
                           ),
@@ -576,10 +576,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             width: 56,
                             height: 56,
                             decoration: BoxDecoration(
-                              color: color.withOpacity(0.15),
+                              color: color.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: color.withOpacity(0.2),
+                                color: color.withValues(alpha: 0.2),
                                 width: 1,
                               ),
                             ),
@@ -753,7 +753,7 @@ class _FeaturedItemCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: AppColors.navy.withOpacity(0.06),
+              color: AppColors.navy.withValues(alpha: 0.06),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -766,7 +766,7 @@ class _FeaturedItemCard extends StatelessWidget {
               height: 100,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.08),
+                color: AppColors.primary.withValues(alpha: 0.08),
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(16),
                 ),
@@ -777,7 +777,7 @@ class _FeaturedItemCard extends StatelessWidget {
                     child: Icon(
                       Icons.image_outlined,
                       size: 40,
-                      color: AppColors.primary.withOpacity(0.5),
+                      color: AppColors.primary.withValues(alpha: 0.5),
                     ),
                   ),
                   Positioned(
@@ -886,7 +886,7 @@ class _RecentItemCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: AppColors.navy.withOpacity(0.04),
+              color: AppColors.navy.withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -898,13 +898,13 @@ class _RecentItemCard extends StatelessWidget {
               width: 60,
               height: 60,
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.08),
+                color: AppColors.primary.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 Icons.image_outlined,
                 size: 28,
-                color: AppColors.primary.withOpacity(0.5),
+                color: AppColors.primary.withValues(alpha: 0.5),
               ),
             ),
             const SizedBox(width: 12),

@@ -122,7 +122,7 @@ class _RentalHistoryScreenState extends State<RentalHistoryScreen> {
                 : ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
                     itemCount: _filteredRentals.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 14),
+                    separatorBuilder: (context, index) => const SizedBox(height: 14),
                     itemBuilder: (context, index) => _filteredRentals[index],
                   ),
           ),
@@ -191,7 +191,7 @@ class RentalHistoryCard extends StatelessWidget {
         // method, not both" fix applied to the other screens.
         boxShadow: [
           BoxShadow(
-            color: AppColors.navy.withOpacity(0.06),
+            color: AppColors.navy.withValues(alpha: 0.06),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -226,8 +226,8 @@ class RentalHistoryCard extends StatelessWidget {
                   // Colors.green / Colors.orange — keeps this card in
                   // sync if the palette ever changes.
                   color: isCompleted
-                      ? AppColors.success.withOpacity(0.12)
-                      : AppColors.warning.withOpacity(0.15),
+                      ? AppColors.success.withValues(alpha: 0.12)
+                      : AppColors.warning.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(

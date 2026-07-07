@@ -12,7 +12,7 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen>
   late TabController _tabController;
 
   // Dummy data — will come from Firestore later
-  List<Map<String, String>> _pendingRequests = [
+  final List<Map<String, String>> _pendingRequests = [
     {
       'renter': 'Ali Raza',
       'item': 'DSLR Camera',
@@ -27,7 +27,7 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen>
     },
   ];
 
-  List<Map<String, String>> _historyRequests = [
+  final List<Map<String, String>> _historyRequests = [
     {
       'renter': 'Bilal Khan',
       'item': 'Power Drill',
@@ -293,7 +293,7 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen>
                         leading: CircleAvatar(
                           backgroundColor: _statusColor(
                             request['status']!,
-                          ).withOpacity(0.15),
+                          ).withValues(alpha: 0.15),
                           child: Icon(
                             request['status'] == 'approved'
                                 ? Icons.check
@@ -316,7 +316,7 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen>
                           decoration: BoxDecoration(
                             color: _statusColor(
                               request['status']!,
-                            ).withOpacity(0.15),
+                            ).withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(

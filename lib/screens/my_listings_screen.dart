@@ -697,7 +697,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.navy.withOpacity(0.08),
+                      color: AppColors.navy.withValues(alpha: 0.08),
                       blurRadius: 20,
                       offset: const Offset(0, 8),
                     ),
@@ -807,7 +807,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.08),
+                      color: AppColors.primary.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -895,7 +895,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.2),
+                    color: AppColors.primary.withValues(alpha: 0.2),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -994,7 +994,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.08),
+              color: AppColors.primary.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -1002,14 +1002,14 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
                   ? Icons.inbox_rounded
                   : Icons.search_off_rounded,
               size: 40,
-              color: AppColors.primary.withOpacity(0.4),
+              color: AppColors.primary.withValues(alpha: 0.4),
             ),
           ),
           const SizedBox(height: 16),
           Text(
             _filterStatus == 'all'
                 ? 'No listings yet'
-                : 'No ${_filterStatus} items',
+                : 'No $_filterStatus items',
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -1122,7 +1122,7 @@ class _ListingCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.navy.withOpacity(0.06),
+            color: AppColors.navy.withValues(alpha: 0.06),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -1139,7 +1139,7 @@ class _ListingCard extends StatelessWidget {
                 height: 100,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.08),
+                  color: AppColors.primary.withValues(alpha: 0.08),
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(16),
                   ),
@@ -1148,7 +1148,7 @@ class _ListingCard extends StatelessWidget {
                   child: Icon(
                     item.placeholderIcon,
                     size: 40,
-                    color: AppColors.primary.withOpacity(0.6),
+                    color: AppColors.primary.withValues(alpha: 0.6),
                   ),
                 ),
               ),
@@ -1163,8 +1163,8 @@ class _ListingCard extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: item.isAvailable
-                        ? AppColors.success.withOpacity(0.15)
-                        : AppColors.warning.withOpacity(0.15),
+                        ? AppColors.success.withValues(alpha: 0.15)
+                        : AppColors.warning.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -1189,7 +1189,7 @@ class _ListingCard extends StatelessWidget {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.6),
+                    color: Colors.black.withValues(alpha: 0.6),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Row(
@@ -1276,7 +1276,7 @@ class _ListingCard extends StatelessWidget {
                     onPressed: onDelete,
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.error,
-                      side: BorderSide(color: AppColors.error.withOpacity(0.4)),
+                      side: BorderSide(color: AppColors.error.withValues(alpha: 0.4)),
                       padding: const EdgeInsets.symmetric(vertical: 6),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -1320,7 +1320,7 @@ class _ListingListItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: AppColors.navy.withOpacity(0.04),
+            color: AppColors.navy.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -1333,13 +1333,13 @@ class _ListingListItem extends StatelessWidget {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.08),
+              color: AppColors.primary.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
               item.placeholderIcon,
               size: 28,
-              color: AppColors.primary.withOpacity(0.6),
+              color: AppColors.primary.withValues(alpha: 0.6),
             ),
           ),
           const SizedBox(width: 12),
@@ -1369,8 +1369,8 @@ class _ListingListItem extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: item.isAvailable
-                            ? AppColors.success.withOpacity(0.12)
-                            : AppColors.warning.withOpacity(0.12),
+                            ? AppColors.success.withValues(alpha: 0.12)
+                            : AppColors.warning.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
@@ -1470,8 +1470,9 @@ class _ListingListItem extends StatelessWidget {
     if (difference.inDays == 0) return 'Today';
     if (difference.inDays == 1) return 'Yesterday';
     if (difference.inDays < 7) return '${difference.inDays} days ago';
-    if (difference.inDays < 30)
+    if (difference.inDays < 30) {
       return '${(difference.inDays / 7).floor()} weeks ago';
+    }
     return '${(difference.inDays / 30).floor()} months ago';
   }
 }

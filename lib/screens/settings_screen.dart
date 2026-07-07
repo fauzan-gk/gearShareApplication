@@ -286,7 +286,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               width: 150,
               height: 150,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(.08),
+                color: Colors.white.withValues(alpha: .08),
                 shape: BoxShape.circle,
               ),
             ),
@@ -298,7 +298,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               width: 110,
               height: 110,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(.08),
+                color: Colors.white.withValues(alpha: .08),
                 shape: BoxShape.circle,
               ),
             ),
@@ -452,7 +452,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Function(bool) onChanged,
   ) {
     return SwitchListTile(
-      activeColor: const Color(0xffF4820A),
+      activeThumbColor: const Color(0xffF4820A),
       value: value,
       onChanged: onChanged,
       secondary: Container(

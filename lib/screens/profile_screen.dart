@@ -337,7 +337,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.white.withOpacity(opacity),
+          color: Colors.white.withValues(alpha: opacity),
         ),
       ),
     );
@@ -350,7 +350,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.18),
+            color: Colors.white.withValues(alpha: 0.18),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: Colors.white, size: 18),
@@ -367,7 +367,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.18),
+              color: Colors.white.withValues(alpha: 0.18),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -420,9 +420,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 height: 100,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.25),
+                  color: Colors.white.withValues(alpha: 0.25),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     width: 3,
                   ),
                 ),
@@ -446,7 +446,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
+                        color: Colors.black.withValues(alpha: 0.15),
                         blurRadius: 6,
                       ),
                     ],
@@ -494,7 +494,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.15),
+            color: Colors.black.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Row(
@@ -544,7 +544,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           borderRadius: BorderRadius.circular(22),
           border: filled
               ? null
-              : Border.all(color: Colors.white.withOpacity(0.5), width: 1.5),
+              : Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1.5),
         ),
         child: Text(
           label,
@@ -566,7 +566,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
@@ -754,7 +754,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 12,
             offset: const Offset(0, 3),
           ),
@@ -1231,7 +1231,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
           Switch.adaptive(
             value: val,
             onChanged: onChange,
-            activeColor: const Color(0xffF4820A),
+            activeTrackColor: const Color(0xffF4820A),
           ),
         ],
       ),

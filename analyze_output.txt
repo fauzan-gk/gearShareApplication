@@ -1,0 +1,4 @@
+Analyzing gearShareApplication...                               
+
+  error - The named parameter 'value' isn't defined. Try correcting the name to an existing named parameter's name, or defining a named parameter with the name 'value' - lib\screens\rental_request_screen.dart:276:17 - undefined_named_parameter
+

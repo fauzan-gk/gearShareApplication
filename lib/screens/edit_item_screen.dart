@@ -544,6 +544,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
       //   'isFeatured': _isFeatured,
       // });
 
+      if (!mounted) return;
       // Hide loading state
       setState(() => _isLoading = false);
 
@@ -676,15 +677,15 @@ class _EditItemScreenState extends State<EditItemScreen> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          AppColors.primary.withOpacity(0.06),
-                          AppColors.primary.withOpacity(0.02),
+                          AppColors.primary.withValues(alpha: 0.06),
+                          AppColors.primary.withValues(alpha: 0.02),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: AppColors.primary.withOpacity(0.3),
+                        color: AppColors.primary.withValues(alpha: 0.3),
                         width: 2,
                       ),
                     ),
@@ -696,8 +697,8 @@ class _EditItemScreenState extends State<EditItemScreen> {
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
-                                AppColors.primary.withOpacity(0.15),
-                                AppColors.primary.withOpacity(0.05),
+                                AppColors.primary.withValues(alpha: 0.15),
+                                AppColors.primary.withValues(alpha: 0.05),
                               ],
                             ),
                             shape: BoxShape.circle,
@@ -757,7 +758,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
 
                     // Category dropdown with icon preview
                     DropdownButtonFormField<String>(
-                      value: _selectedCategory,
+                      initialValue: _selectedCategory,
                       hint: Row(
                         children: [
                           Icon(
@@ -799,7 +800,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
 
                     // Condition dropdown
                     DropdownButtonFormField<String>(
-                      value: _condition,
+                      initialValue: _condition,
                       decoration: _buildInputDecoration(
                         'Condition',
                         Icons.ad_units_outlined,
@@ -935,17 +936,17 @@ class _EditItemScreenState extends State<EditItemScreen> {
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
                         color: _availability == 'Available'
-                            ? AppColors.success.withOpacity(0.05)
-                            : AppColors.warning.withOpacity(0.05),
+                            ? AppColors.success.withValues(alpha: 0.05)
+                            : AppColors.warning.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: _availability == 'Available'
-                              ? AppColors.success.withOpacity(0.2)
-                              : AppColors.warning.withOpacity(0.2),
+                              ? AppColors.success.withValues(alpha: 0.2)
+                              : AppColors.warning.withValues(alpha: 0.2),
                         ),
                       ),
                       child: DropdownButtonFormField<String>(
-                        value: _availability,
+                        initialValue: _availability,
                         decoration:
                             _buildInputDecoration(
                               '',
@@ -993,13 +994,13 @@ class _EditItemScreenState extends State<EditItemScreen> {
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            Colors.amber.withOpacity(0.08),
-                            Colors.amber.withOpacity(0.02),
+                            Colors.amber.withValues(alpha: 0.08),
+                            Colors.amber.withValues(alpha: 0.02),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: Colors.amber.withOpacity(0.2),
+                          color: Colors.amber.withValues(alpha: 0.2),
                         ),
                       ),
                       child: SwitchListTile(
@@ -1017,8 +1018,8 @@ class _EditItemScreenState extends State<EditItemScreen> {
                           style: TextStyle(fontSize: 12),
                         ),
                         value: _isFeatured,
-                        activeColor: Colors.amber,
-                        activeTrackColor: Colors.amber.withOpacity(0.3),
+                        activeThumbColor: Colors.amber,
+                        activeTrackColor: Colors.amber.withValues(alpha: 0.3),
                         onChanged: (bool value) =>
                             setState(() => _isFeatured = value),
                       ),
@@ -1048,7 +1049,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    disabledBackgroundColor: AppColors.primary.withOpacity(0.6),
+                    disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.6),
                   ),
                   child: _isLoading
                       ? const Row(
@@ -1104,7 +1105,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
                   onPressed: _confirmDelete,
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.error,
-                    side: BorderSide(color: AppColors.error.withOpacity(0.5)),
+                    side: BorderSide(color: AppColors.error.withValues(alpha: 0.5)),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -1205,12 +1206,12 @@ class _EditItemScreenState extends State<EditItemScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppColors.primary.withOpacity(0.08),
-            AppColors.primary.withOpacity(0.02),
+            AppColors.primary.withValues(alpha: 0.08),
+            AppColors.primary.withValues(alpha: 0.02),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primary.withOpacity(0.1)),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1348,7 +1349,7 @@ class _SectionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.navy.withOpacity(0.06),
+            color: AppColors.navy.withValues(alpha: 0.06),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),

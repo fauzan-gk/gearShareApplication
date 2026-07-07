@@ -28,7 +28,7 @@ class CustomBottomNav extends StatelessWidget {
         color: AppColors.surface,
         boxShadow: [
           BoxShadow(
-            color: AppColors.navy.withOpacity(0.08),
+            color: AppColors.navy.withValues(alpha: 0.08),
             blurRadius: 16,
             offset: const Offset(0, -4),
           ),

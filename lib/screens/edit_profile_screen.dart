@@ -281,7 +281,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.06),
+        color: Colors.white.withValues(alpha: 0.06),
         shape: BoxShape.circle,
       ),
     );
@@ -315,7 +315,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
-                color: AppColors.navy.withOpacity(0.06),
+                color: AppColors.navy.withValues(alpha: 0.06),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -367,7 +367,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: AppColors.navy.withOpacity(0.06),
+            color: AppColors.navy.withValues(alpha: 0.06),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -376,7 +376,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       child: SwitchListTile(
         value: value,
         onChanged: onChanged,
-        activeColor: AppColors.primary,
+        activeThumbColor: AppColors.primary,
         secondary: Icon(icon, color: AppColors.primary),
         title: Text(
           title,

@@ -116,7 +116,7 @@ class AppDrawer extends StatelessWidget {
           fontSize: 14,
         ),
       ),
-      tileColor: isActive ? AppColors.primary.withOpacity(0.08) : null,
+      tileColor: isActive ? AppColors.primary.withValues(alpha: 0.08) : null,
       onTap: () {
         Navigator.pop(context);
         if (!isActive) {
