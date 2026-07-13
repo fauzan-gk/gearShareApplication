@@ -1,5 +1,12 @@
 import 'package:flutter/material.dart';
+import '../constants/app_colors.dart';
+import '../constants/custom_app_bar.dart';
 
+// ─────────────────────────────────────────────────────────────
+// SETTINGS SCREEN
+// StatefulWidget because switches (notifications, dark mode, etc.)
+// need to remember their on/off state and rebuild when toggled.
+// ─────────────────────────────────────────────────────────────
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -8,512 +15,240 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool notifications = true;
-  bool darkMode = false;
-  bool location = true;
+  // Toggle states — Phase 3: persist these to Shared Preferences
+  // or the user's Firestore document instead of just in-memory.
+  bool _pushNotifications = true;
+  bool _emailNotifications = false;
+  bool _locationServices = true;
+  bool _darkMode = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xffF5F5F5),
+      backgroundColor: AppColors.background,
+      appBar: const CustomAppBar(title: 'Settings'),
+
       body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(),
-            const SizedBox(height: 20),
-            _accountCard(),
-            const SizedBox(height: 20),
-
-            // ── Toggle switches ──
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(22),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.shade200,
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-              ),
+            // ── NOTIFICATIONS SECTION ─────────────────────────
+            _SectionCard(
+              title: 'Notifications',
               child: Column(
                 children: [
                   _switchTile(
-                    Icons.notifications_active,
-                    "Notifications",
-                    notifications,
-                    (value) => setState(() => notifications = value),
+                    'Push Notifications',
+                    Icons.notifications_active_outlined,
+                    _pushNotifications,
+                    (value) => setState(() => _pushNotifications = value),
                   ),
                   _switchTile(
-                    Icons.dark_mode,
-                    "Dark Mode",
-                    darkMode,
-                    (value) => setState(() => darkMode = value),
-                  ),
-                  _switchTile(
-                    Icons.location_on,
-                    "Location Access",
-                    location,
-                    (value) => setState(() => location = value),
+                    'Email Notifications',
+                    Icons.email_outlined,
+                    _emailNotifications,
+                    (value) => setState(() => _emailNotifications = value),
                   ),
                 ],
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
-            // ── Menu tiles ──
-            _menuTile(Icons.lock, "Privacy & Security"),
-            _menuTile(Icons.language, "Language"),
-            _menuTile(Icons.help_outline, "Help & Support"),
-            _menuTile(Icons.description, "Terms & Conditions"),
-            _menuTile(Icons.star_rate, "Rate GearShare"),
+            // ── PRIVACY SECTION ────────────────────────────────
+            _SectionCard(
+              title: 'Privacy',
+              child: _switchTile(
+                'Location Services',
+                Icons.location_on_outlined,
+                _locationServices,
+                (value) => setState(() => _locationServices = value),
+              ),
+            ),
 
-            const SizedBox(height: 25),
+            const SizedBox(height: 16),
 
-            // ── Premium banner ──
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xffF4820A), Color(0xffFFB347)],
+            // ── APPEARANCE SECTION ─────────────────────────────
+            _SectionCard(
+              title: 'Appearance',
+              child: _switchTile(
+                'Dark Mode',
+                Icons.dark_mode_outlined,
+                _darkMode,
+                (value) => setState(() => _darkMode = value),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // ── ACCOUNT SECTION ─────────────────────────────────
+            // Simple navigational tiles (no switches) — each one
+            // would push to a dedicated screen or show a dialog.
+            _SectionCard(
+              title: 'Account',
+              child: Column(
+                children: [
+                  _navTile(
+                    context,
+                    'Change Password',
+                    Icons.lock_outline,
+                    onTap: () {
+                      // TODO Phase 3: navigate to a change-password flow
+                      // backed by Firebase Authentication
+                    },
+                  ),
+                  _navTile(
+                    context,
+                    'Privacy Policy',
+                    Icons.shield_outlined,
+                    onTap: () {},
+                  ),
+                  _navTile(
+                    context,
+                    'Terms of Service',
+                    Icons.description_outlined,
+                    onTap: () {},
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // ── LOGOUT BUTTON ────────────────────────────────────
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  // Clears the navigation stack and sends the user back
+                  // to Login — pushReplacementNamed on its own would still
+                  // leave Home/Profile etc. behind it in the stack, so we
+                  // use pushNamedAndRemoveUntil to wipe everything.
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/login',
+                    (route) => false,
+                  );
+                },
+                icon: const Icon(Icons.logout, color: AppColors.error),
+                label: const Text(
+                  'Log Out',
+                  style: TextStyle(
+                    color: AppColors.error,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
                 ),
-                borderRadius: BorderRadius.circular(22),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.workspace_premium, color: Colors.white, size: 40),
-                  SizedBox(width: 15),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "GearShare Premium",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        ),
-                        SizedBox(height: 5),
-                        Text(
-                          "Unlock exclusive rental benefits and priority support.",
-                          style: TextStyle(color: Colors.white70),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 25),
-
-            // ── App information card ──
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(22),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.shade200,
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.info_outline,
-                          color: Color(0xffF4820A),
-                        ),
-                      ),
-                      const SizedBox(width: 15),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "App Information",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 17,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              "You're using the latest version of GearShare.",
-                              style: TextStyle(color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Divider(height: 30),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
-                      Text("Version",
-                          style: TextStyle(fontWeight: FontWeight.w600)),
-                      Text(
-                        "1.0.0",
-                        style: TextStyle(
-                          color: Color(0xffF4820A),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
-                      Text("Build",
-                          style: TextStyle(fontWeight: FontWeight.w600)),
-                      Text(
-                        "1001",
-                        style: TextStyle(
-                          color: Color(0xffF4820A),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 25),
-
-            // ── Logout button ──
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                  ),
-                  onPressed: () {},
-                  icon: const Icon(Icons.logout, color: Colors.white),
-                  label: const Text(
-                    "Logout",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: AppColors.error.withOpacity(0.5)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
                   ),
                 ),
               ),
             ),
-
-            const SizedBox(height: 20),
-
-            Text(
-              "GearShare v1.0.0",
-              style: TextStyle(color: Colors.grey.shade600),
-            ),
-
-            const SizedBox(height: 10),
-
-            const Text(
-              "Made with ❤️ using Flutter",
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 14,
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            const Text(
-              "© 2026 GearShare",
-              style: TextStyle(color: Colors.grey, fontSize: 13),
-            ),
-
-            const SizedBox(height: 40),
           ],
         ),
       ),
     );
   }
 
-  // ════════════════════════════════════════
-  //  HEADER
-  // ════════════════════════════════════════
-  Widget _buildHeader() {
-    return Container(
-      width: double.infinity,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xffF4820A), Color(0xffFFB347)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(40),
-          bottomRight: Radius.circular(40),
-        ),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            top: -35,
-            right: -25,
-            child: Container(
-              width: 150,
-              height: 150,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: .08),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -25,
-            left: -20,
-            child: Container(
-              width: 110,
-              height: 110,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: .08),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 15, 20, 30),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      InkWell(
-                        onTap: () => Navigator.pop(context),
-                        child: const Icon(
-                          Icons.arrow_back_ios,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const Expanded(
-                        child: Center(
-                          child: Text(
-                            "Settings",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 25,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const Icon(Icons.settings, color: Colors.white),
-                    ],
-                  ),
-                  const SizedBox(height: 25),
-                  Stack(
-                    alignment: Alignment.bottomRight,
-                    children: [
-                      const CircleAvatar(
-                        radius: 48,
-                        backgroundColor: Colors.white,
-                        child: Text(
-                          "UF",
-                          style: TextStyle(
-                            color: Color(0xffF4820A),
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.edit,
-                          color: Color(0xffF4820A),
-                          size: 18,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 15),
-                  const Text(
-                    "Customize your GearShare experience",
-                    style: TextStyle(color: Colors.white70, fontSize: 15),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ════════════════════════════════════════
-  //  ACCOUNT CARD
-  // ════════════════════════════════════════
-  Widget _accountCard() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade200,
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          const CircleAvatar(
-            radius: 32,
-            backgroundColor: Color(0xffF4820A),
-            child: Text(
-              "UF",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          const SizedBox(width: 15),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Urooj Fatima",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                ),
-                SizedBox(height: 5),
-                Text(
-                  "urooj@gmail.com",
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.orange.shade50,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.arrow_forward_ios,
-              size: 18,
-              color: Color(0xffF4820A),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ════════════════════════════════════════
-  //  SWITCH TILE
-  // ════════════════════════════════════════
+  // Reusable switch row — icon + label + Switch, no extra card needed
+  // per row since _SectionCard already wraps the whole group.
   Widget _switchTile(
-    IconData icon,
     String title,
+    IconData icon,
     bool value,
-    Function(bool) onChanged,
+    ValueChanged<bool> onChanged,
   ) {
     return SwitchListTile(
-      activeThumbColor: const Color(0xffF4820A),
+      contentPadding: EdgeInsets.zero,
       value: value,
       onChanged: onChanged,
-      secondary: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Colors.orange.shade50,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(icon, color: const Color(0xffF4820A)),
-      ),
+      activeColor: AppColors.primary,
+      secondary: Icon(icon, color: AppColors.primary, size: 22),
       title: Text(
         title,
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+        style: const TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+          color: AppColors.textPrimary,
+        ),
       ),
     );
   }
 
-  // ════════════════════════════════════════
-  //  MENU TILE
-  // ════════════════════════════════════════
-  Widget _menuTile(IconData icon, String title) {
+  // Reusable navigational row — icon + label + chevron, tappable.
+  Widget _navTile(
+    BuildContext context,
+    String title,
+    IconData icon, {
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      onTap: onTap,
+      leading: Icon(icon, color: AppColors.primary, size: 22),
+      title: Text(
+        title,
+        style: const TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+          color: AppColors.textPrimary,
+        ),
+      ),
+      trailing: const Icon(
+        Icons.arrow_forward_ios_rounded,
+        size: 14,
+        color: AppColors.textHint,
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// SECTION CARD WIDGET
+// Same reusable pattern as AddItemScreen/EditItemScreen — groups
+// related settings under one white card with a bold title.
+// ─────────────────────────────────────────────────────────────
+class _SectionCard extends StatelessWidget {
+  final String title;
+  final Widget child;
+
+  const _SectionCard({required this.title, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.shade200,
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+            color: AppColors.navy.withOpacity(0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-        leading: Container(
-          width: 45,
-          height: 45,
-          decoration: BoxDecoration(
-            color: Colors.orange.shade50,
-            borderRadius: BorderRadius.circular(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
           ),
-          child: Icon(icon, color: const Color(0xffF4820A)),
-        ),
-        title: Text(
-          title,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        ),
-        trailing: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(Icons.arrow_forward_ios,
-              size: 16, color: Colors.black54),
-        ),
-        onTap: () {},
+          const SizedBox(height: 4),
+          child,
+        ],
       ),
     );
   }

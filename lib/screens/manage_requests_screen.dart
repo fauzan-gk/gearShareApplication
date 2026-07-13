@@ -54,7 +54,6 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen>
     super.dispose();
   }
 
-  // Shows a confirmation dialog before approving/rejecting
   void _showConfirmDialog({
     required Map<String, String> request,
     required bool isApprove,
@@ -66,26 +65,46 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen>
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: Text(isApprove ? 'Approve Request?' : 'Reject Request?'),
+          title: Text(
+            isApprove ? 'Approve Request?' : 'Reject Request?',
+            style: const TextStyle(
+              color: Color(0xFF1B2A4A),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           content: Text(
             '${isApprove ? 'Approve' : 'Reject'} rental request from ${request['renter']} for ${request['item']}?',
+            style: const TextStyle(color: Colors.black87, fontSize: 14),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: isApprove ? Colors.green : Colors.red,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                elevation: 0,
               ),
               onPressed: () {
-                Navigator.pop(context); // close dialog
+                Navigator.pop(context);
                 _handleRequestDecision(request, isApprove);
               },
               child: Text(
                 isApprove ? 'Approve' : 'Reject',
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
@@ -94,7 +113,6 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen>
     );
   }
 
-  // Moves request from pending list to history list
   void _handleRequestDecision(Map<String, String> request, bool isApprove) {
     setState(() {
       _pendingRequests.remove(request);
@@ -106,8 +124,11 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen>
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(isApprove ? 'Request approved' : 'Request rejected'),
+        content: Text(isApprove ? '✅ Request approved' : '❌ Request rejected'),
         backgroundColor: const Color(0xFF1B2A4A),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
       ),
     );
   }
@@ -123,15 +144,27 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen>
     }
   }
 
+  Color _statusBgColor(String status) {
+    switch (status) {
+      case 'approved':
+        return Colors.green.withValues(alpha: 0.08);
+      case 'rejected':
+        return Colors.red.withValues(alpha: 0.08);
+      default:
+        return Colors.orange.withValues(alpha: 0.08);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: const Color(0xFF1B2A4A),
+        elevation: 0,
         title: const Text(
           'Manage Requests',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
         bottom: TabBar(
@@ -139,6 +172,15 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen>
           labelColor: const Color(0xFFF4820A),
           unselectedLabelColor: Colors.white70,
           indicatorColor: const Color(0xFFF4820A),
+          indicatorSize: TabBarIndicatorSize.tab,
+          labelStyle: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontWeight: FontWeight.w500,
+            fontSize: 14,
+          ),
           tabs: [
             Tab(text: 'Pending (${_pendingRequests.length})'),
             const Tab(text: 'History'),
@@ -148,12 +190,32 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen>
       body: TabBarView(
         controller: _tabController,
         children: [
-          // Pending tab
+          // ── PENDING TAB ──────────────────────────────────
           _pendingRequests.isEmpty
-              ? const Center(
-                  child: Text(
-                    'No pending requests',
-                    style: TextStyle(color: Colors.grey),
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.check_circle_outline,
+                        size: 64,
+                        color: Colors.grey[300],
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'No pending requests',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1B2A4A),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'All requests have been reviewed',
+                        style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+                      ),
+                    ],
                   ),
                 )
               : ListView.builder(
@@ -161,121 +223,216 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen>
                   itemCount: _pendingRequests.length,
                   itemBuilder: (context, index) {
                     final request = _pendingRequests[index];
-                    return Card(
+                    return Container(
                       margin: const EdgeInsets.only(bottom: 12),
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(
+                              0xFF1B2A4A,
+                            ).withValues(alpha: 0.04),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(14),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                const CircleAvatar(
-                                  backgroundColor: Color(0xFF1B2A4A),
-                                  child: Icon(
-                                    Icons.person,
-                                    color: Colors.white,
-                                    size: 18,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: const Color(
+                                    0xFF1B2A4A,
+                                  ).withValues(alpha: 0.08),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    request['renter']![0].toUpperCase(),
+                                    style: const TextStyle(
+                                      color: Color(0xFF1B2A4A),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
                                   ),
                                 ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        request['renter']!,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      request['renter']!,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                        color: Color(0xFF1B2A4A),
                                       ),
-                                      Text(
-                                        request['item']!,
-                                        style: const TextStyle(
-                                          color: Colors.grey,
-                                          fontSize: 13,
-                                        ),
+                                    ),
+                                    Text(
+                                      request['item']!,
+                                      style: const TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 13,
                                       ),
-                                    ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Text(
+                                  'PENDING',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.orange,
                                   ),
                                 ),
-                              ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
                             ),
-                            const SizedBox(height: 10),
-                            Row(
+                            decoration: BoxDecoration(
+                              color: Colors.grey[50],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: Colors.grey[200]!,
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
                               children: [
                                 const Icon(
-                                  Icons.calendar_today,
+                                  Icons.calendar_today_outlined,
                                   size: 14,
                                   color: Color(0xFFF4820A),
                                 ),
-                                const SizedBox(width: 6),
+                                const SizedBox(width: 8),
                                 Text(
                                   request['dates']!,
-                                  style: const TextStyle(fontSize: 13),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 14),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: OutlinedButton(
-                                    style: OutlinedButton.styleFrom(
-                                      side: const BorderSide(color: Colors.red),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                    ),
-                                    onPressed: () => _showConfirmDialog(
-                                      request: request,
-                                      isApprove: false,
-                                    ),
-                                    child: const Text(
-                                      'Reject',
-                                      style: TextStyle(color: Colors.red),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFFF4820A),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                    ),
-                                    onPressed: () => _showConfirmDialog(
-                                      request: request,
-                                      isApprove: true,
-                                    ),
-                                    child: const Text(
-                                      'Approve',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF1B2A4A),
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ],
                             ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  style: OutlinedButton.styleFrom(
+                                    side: const BorderSide(
+                                      color: Colors.red,
+                                      width: 1.5,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    elevation: 0,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                  ),
+                                  onPressed: () => _showConfirmDialog(
+                                    request: request,
+                                    isApprove: false,
+                                  ),
+                                  child: const Text(
+                                    'Reject',
+                                    style: TextStyle(
+                                      color: Colors.red,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFF4820A),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    elevation: 0,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                  ),
+                                  onPressed: () => _showConfirmDialog(
+                                    request: request,
+                                    isApprove: true,
+                                  ),
+                                  child: const Text(
+                                    'Approve',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     );
                   },
                 ),
 
-          // History tab
+          // ── HISTORY TAB ──────────────────────────────────
           _historyRequests.isEmpty
-              ? const Center(
-                  child: Text(
-                    'No history yet',
-                    style: TextStyle(color: Colors.grey),
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.history_outlined,
+                        size: 64,
+                        color: Colors.grey[300],
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'No history yet',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1B2A4A),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Completed requests will appear here',
+                        style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+                      ),
+                    ],
                   ),
                 )
               : ListView.builder(
@@ -283,51 +440,83 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen>
                   itemCount: _historyRequests.length,
                   itemBuilder: (context, index) {
                     final request = _historyRequests[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      elevation: 1,
-                      shape: RoundedRectangleBorder(
+                    final status = request['status']!;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(
+                              0xFF1B2A4A,
+                            ).withValues(alpha: 0.03),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: _statusColor(
-                            request['status']!,
-                          ).withValues(alpha: 0.15),
-                          child: Icon(
-                            request['status'] == 'approved'
-                                ? Icons.check
-                                : Icons.close,
-                            color: _statusColor(request['status']!),
-                          ),
-                        ),
-                        title: Text(
-                          request['renter']!,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text(
-                          '${request['item']} • ${request['dates']}',
-                        ),
-                        trailing: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _statusColor(
-                              request['status']!,
-                            ).withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            request['status']!.toUpperCase(),
-                            style: TextStyle(
-                              color: _statusColor(request['status']!),
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: _statusBgColor(status),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              status == 'approved'
+                                  ? Icons.check_rounded
+                                  : Icons.close_rounded,
+                              color: _statusColor(status),
+                              size: 22,
                             ),
                           ),
-                        ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  request['renter']!,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color: Color(0xFF1B2A4A),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${request['item']} • ${request['dates']}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _statusBgColor(status),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              status.toUpperCase(),
+                              style: TextStyle(
+                                color: _statusColor(status),
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   },
