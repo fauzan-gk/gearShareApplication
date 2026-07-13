@@ -75,17 +75,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // ── NAVIGATION HANDLERS ──────────────────────────────────
-  // Each of these now pushes to the ACTUAL standalone screen
-  // (already built and registered in main.dart), instead of
-  // opening a separate inline bottom-sheet copy of the same UI.
-  // This avoids maintaining two versions of "Edit Profile" that
-  // could drift out of sync with each other.
-
   void _openEditProfile() async {
-    // pushNamed + await lets us get data BACK when the user pops
-    // this route — this is the "Returning Data from Screens" Phase 2
-    // requirement. EditProfileScreen would need to call
-    // Navigator.pop(context, updatedProfile) for this to receive it.
     final updated = await Navigator.pushNamed(
       context,
       '/edit-profile',
@@ -132,8 +122,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             onPressed: () {
               Navigator.pop(context); // close dialog
-              // Clears the ENTIRE navigation stack so the user can't
-              // back-button into the app after logging out.
               Navigator.pushNamedAndRemoveUntil(
                 context,
                 '/login',
@@ -151,9 +139,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-
-      // Profile is a core bottom-nav tab, so it gets the full shared
-      // navigation set — same as Home/Browse/Listings.
       appBar: CustomAppBar(
         title: 'My Profile',
         actions: [
@@ -217,136 +202,166 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // ── HEADER ─────────────────────────────────────────────────
-  // Navy (not orange) header — keeps orange as the small accent
-  // color it's meant to be, consistent with every other screen.
+  // Navy header with decorative circles (consistent with EditProfileScreen)
   Widget _buildHeader() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 24),
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.navy, AppColors.navyLight],
-        ),
+        color: AppColors.navy,
         borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(32),
-          bottomRight: Radius.circular(32),
+          bottomLeft: Radius.circular(40),
+          bottomRight: Radius.circular(40),
         ),
       ),
-      child: Column(
+      // Stack layers the decorative circles BEHIND the actual content
+      child: Stack(
         children: [
-          GestureDetector(
-            onTap: _openEditProfile,
-            child: Stack(
+          Positioned(top: -40, right: -30, child: _decorCircle(170)),
+          Positioned(bottom: -30, left: -20, child: _decorCircle(120)),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Column(
               children: [
-                Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.15),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.9),
-                      width: 3,
-                    ),
-                  ),
-                  child: const CircleAvatar(
-                    backgroundColor: Colors.white,
-                    child: Icon(
-                      Icons.person_rounded,
-                      size: 50,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: 1,
-                  right: 1,
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
-                          blurRadius: 6,
+                GestureDetector(
+                  onTap: _openEditProfile,
+                  child: Stack(
+                    children: [
+                      Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withOpacity(0.15),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.9),
+                            width: 3,
+                          ),
                         ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.camera_alt_rounded,
-                      color: AppColors.primary,
-                      size: 14,
-                    ),
+                        child: const CircleAvatar(
+                          backgroundColor: Colors.white,
+                          child: Icon(
+                            Icons.person_rounded,
+                            size: 50,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 1,
+                        right: 1,
+                        child: Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.15),
+                                blurRadius: 6,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt_rounded,
+                            color: AppColors.primary,
+                            size: 14,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _profile.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: const BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.check_rounded,
+                        color: Colors.white,
+                        size: 12,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.location_on_rounded,
+                        color: AppColors.primary,
+                        size: 13,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _profile.location,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _actionBtn(
+                      'Edit Profile',
+                      filled: true,
+                      onTap: _openEditProfile,
+                    ),
+                    const SizedBox(width: 10),
+                    _actionBtn(
+                      'Share Profile',
+                      filled: false,
+                      onTap: _shareProfile,
+                    ),
+                  ],
+                ),
               ],
             ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                _profile.name,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Container(
-                width: 20,
-                height: 20,
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.check_rounded,
-                  color: Colors.white,
-                  size: 12,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.location_on_rounded,
-                  color: AppColors.primary,
-                  size: 13,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  _profile.location,
-                  style: const TextStyle(color: Colors.white, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _actionBtn('Edit Profile', filled: true, onTap: _openEditProfile),
-              const SizedBox(width: 10),
-              _actionBtn('Share Profile', filled: false, onTap: _shareProfile),
-            ],
           ),
         ],
+      ),
+    );
+  }
+
+  // Small helper for decorative circles
+  Widget _decorCircle(double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.06),
+        shape: BoxShape.circle,
       ),
     );
   }
@@ -467,9 +482,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // ── ACCOUNT SECTION ────────────────────────────────────────
-  // Each tile now navigates to a REAL registered route instead of
-  // opening an inline bottom sheet — EditProfileScreen, RatingsScreen,
-  // and SettingsScreen already exist as their own files.
   Widget _buildAccountSection() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),

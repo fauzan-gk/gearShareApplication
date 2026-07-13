@@ -1,50 +1,74 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 
-// ─────────────────────────────────────────────────────────────
-// EDIT PROFILE SCREEN
-// StatefulWidget because text field values and switch toggles all
-// change while the user interacts with the form.
-//
-// NOTE: This screen does NOT use the shared CustomAppBar / Drawer /
-// BottomNav. It's a "drill-down" screen (only reachable by tapping
-// "Edit Profile" from inside the Profile screen), so a custom header
-// with just a back button is the correct pattern here — same as how
-// your Add Item screen wouldn't want a Drawer buried three taps deep
-// in a checkout-style flow. Global nav should only live on top-level
-// destination screens.
-// ─────────────────────────────────────────────────────────────
+// Define a UserProfile model class (add this at the top level or in a separate file)
+class UserProfile {
+  final String name;
+  final String location;
+  // Add other fields as needed
+  final String email;
+  final String phone;
+  final String bio;
+  final bool notifications;
+  final bool publicProfile;
+  final bool showPhone;
+
+  UserProfile({
+    required this.name,
+    required this.location,
+    required this.email,
+    required this.phone,
+    required this.bio,
+    required this.notifications,
+    required this.publicProfile,
+    required this.showPhone,
+  });
+}
+
 class EditProfileScreen extends StatefulWidget {
-  const EditProfileScreen({super.key});
+  // Optional: accept an existing profile as argument
+  final UserProfile? existingProfile;
+
+  const EditProfileScreen({super.key, this.existingProfile});
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
-  // Controllers pre-filled with the user's current info (dummy data for now).
-  // Phase 3: these will be populated from the logged-in user's Firestore doc
-  // instead of hardcoded strings.
-  final TextEditingController nameController = TextEditingController(
-    text: "Urooj Fatima",
-  );
-  final TextEditingController emailController = TextEditingController(
-    text: "urooj@gmail.com",
-  );
-  final TextEditingController phoneController = TextEditingController(
-    text: "+92 300 1234567",
-  );
-  final TextEditingController locationController = TextEditingController(
-    text: "Abbottabad, Pakistan",
-  );
-  final TextEditingController bioController = TextEditingController(
-    text: "Photography lover • Adventure seeker • Renting quality gear.",
-  );
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
+  final TextEditingController locationController = TextEditingController();
+  final TextEditingController bioController = TextEditingController();
 
-  // Switch toggle states — the 'Switches' widget required in Phase 1.
   bool notifications = true;
   bool publicProfile = true;
   bool showPhone = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // If an existing profile was passed, populate the controllers with it
+    if (widget.existingProfile != null) {
+      nameController.text = widget.existingProfile!.name;
+      emailController.text = widget.existingProfile!.email;
+      phoneController.text = widget.existingProfile!.phone;
+      locationController.text = widget.existingProfile!.location;
+      bioController.text = widget.existingProfile!.bio;
+      notifications = widget.existingProfile!.notifications;
+      publicProfile = widget.existingProfile!.publicProfile;
+      showPhone = widget.existingProfile!.showPhone;
+    } else {
+      // Default dummy data if no profile passed
+      nameController.text = "Urooj Fatima";
+      emailController.text = "urooj@gmail.com";
+      phoneController.text = "+92 300 1234567";
+      locationController.text = "Abbottabad, Pakistan";
+      bioController.text =
+          "Photography lover • Adventure seeker • Renting quality gear.";
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -130,7 +154,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ),
                       ),
                       onPressed: () {
-                        // TODO Phase 3: write updated fields to Firestore
+                        // Create updated profile object
+                        final updatedProfile = UserProfile(
+                          name: nameController.text,
+                          location: locationController.text,
+                          email: emailController.text,
+                          phone: phoneController.text,
+                          bio: bioController.text,
+                          notifications: notifications,
+                          publicProfile: publicProfile,
+                          showPhone: showPhone,
+                        );
+
+                        // Pop the screen and return the updated profile
+                        Navigator.pop(context, updatedProfile);
+
+                        // Show success message
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: const Text(
@@ -165,9 +204,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   // ── HEADER ────────────────────────────────────────────────
-  // Custom gradient-free navy header (kept as its own widget, same
-  // pattern as your reference ProfileScreen's _buildHeader) with a
-  // back button, avatar, and camera-edit icon overlay.
   Widget _buildHeader(BuildContext context) {
     return Container(
       width: double.infinity,
@@ -178,8 +214,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           bottomRight: Radius.circular(40),
         ),
       ),
-      // Stack layers the decorative circles BEHIND the actual content —
-      // purely visual, doesn't affect layout of the real widgets.
       child: Stack(
         children: [
           Positioned(top: -40, right: -30, child: _decorCircle(170)),
@@ -215,15 +249,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           ),
                         ),
                       ),
-                      // Empty SizedBox balances the back icon's width so the
-                      // title stays visually centered instead of shifting right.
                       const SizedBox(width: 20),
                     ],
                   ),
                   const SizedBox(height: 22),
 
-                  // Avatar with camera-icon overlay — Stack lets the small
-                  // camera badge sit ON TOP of the circle avatar's corner.
                   Stack(
                     alignment: Alignment.bottomRight,
                     children: [
@@ -274,8 +304,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  // Small helper so we don't repeat the same BoxDecoration twice for
-  // the two decorative background circles.
   Widget _decorCircle(double size) {
     return Container(
       width: size,
@@ -287,10 +315,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  // ── TEXT FIELD ────────────────────────────────────────────
-  // Reusable labeled input field. Extracted here because we need the
-  // SAME style (rounded white container + shadow + icon) for 5 fields —
-  // writing this once avoids repeating ~25 lines five times (DRY).
   Widget _textField(
     String label,
     IconData icon,
@@ -350,10 +374,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  // ── SWITCH TILE ───────────────────────────────────────────
-  // Reusable row: icon + label + Switch, wrapped in a white card.
-  // Function(bool) onChanged is a callback — the PARENT decides what
-  // happens when toggled (here, it just calls setState with the new value).
   Widget _switchTile(
     String title,
     IconData icon,
@@ -390,9 +410,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  // dispose() cleans up all 5 controllers when this screen closes.
-  // Only ONE @override is valid here — the original had it duplicated,
-  // which is a compile error in Dart.
   @override
   void dispose() {
     nameController.dispose();

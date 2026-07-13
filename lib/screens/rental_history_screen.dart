@@ -122,7 +122,8 @@ class _RentalHistoryScreenState extends State<RentalHistoryScreen> {
                 : ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
                     itemCount: _filteredRentals.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 14),
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 14),
                     itemBuilder: (context, index) => _filteredRentals[index],
                   ),
           ),
