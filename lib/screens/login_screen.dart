@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -25,17 +26,27 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _handleLogin() {
+  void _handleLogin() async {
     if (_formKey.currentState!.validate()) {
-      // Placeholder check — real Firebase auth comes in Phase 3
-      if (_emailController.text == 'test@gearshare.com' &&
-          _passwordController.text == '123456') {
+      try {
+        await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
         Navigator.pushReplacementNamed(context, '/home');
-      } else {
+      } on FirebaseAuthException catch (e) {
+        String message = 'Login failed';
+        if (e.code == 'user-not-found') {
+          message = 'No account found with this email';
+        } else if (e.code == 'wrong-password') {
+          message = 'Incorrect password';
+        } else if (e.code == 'invalid-credential') {
+          message = 'Invalid email or password';
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Invalid email or password'),
-            backgroundColor: Color(0xFF1B2A4A),
+          SnackBar(
+            content: Text(message),
+            backgroundColor: const Color(0xFF1B2A4A),
           ),
         );
       }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -19,18 +20,33 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   void _handleResetPassword() async {
     if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Password reset link sent to ${_emailController.text}'),
-          backgroundColor: const Color(0xFF1B2A4A),
-        ),
-      );
+      try {
+        await FirebaseAuth.instance.sendPasswordResetEmail(
+          email: _emailController.text.trim(),
+        );
 
-      // Wait so the user can read the SnackBar before navigating away
-      await Future.delayed(const Duration(seconds: 2));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Password reset link sent to ${_emailController.text.trim()}',
+            ),
+            backgroundColor: const Color(0xFF1B2A4A),
+          ),
+        );
 
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/login');
+        await Future.delayed(const Duration(seconds: 2));
+
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/login');
+        }
+      } on FirebaseAuthException catch (e) {
+        String message = 'Something went wrong';
+        if (e.code == 'user-not-found') {
+          message = 'No account found with this email';
+        }
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
       }
     }
   }

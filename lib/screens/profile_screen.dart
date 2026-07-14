@@ -3,6 +3,8 @@ import '../constants/app_colors.dart';
 import '../constants/custom_app_bar.dart';
 import '../constants/app_drawer.dart';
 import '../constants/custom_bottom_nav.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 // ─────────────────────────────────────────────────────────────
 // USER PROFILE MODEL
@@ -47,14 +49,46 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   UserProfile _profile = const UserProfile(
-    name: 'Urooj Fatima',
-    location: 'Abbottabad, Pakistan',
-    listings: 12,
-    rentals: 18,
-    rating: 4.8,
+    name: '',
+    location: '',
+    listings: 0,
+    rentals: 0,
+    rating: 0.0,
   );
 
+  bool _isLoading = true;
   int _notifCount = 3;
+  Future<void> _loadProfile() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .get();
+
+    if (doc.exists) {
+      final data = doc.data()!;
+      setState(() {
+        _profile = UserProfile(
+          name: data['name'] ?? '',
+          location: data['location'] ?? '',
+          listings: data['listings'] ?? 0,
+          rentals: data['rentals'] ?? 0,
+          rating: (data['rating'] ?? 0.0).toDouble(),
+        );
+        _isLoading = false;
+      });
+    } else {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
 
   void _clearNotifications() {
     setState(() => _notifCount = 0);
@@ -76,14 +110,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // ── NAVIGATION HANDLERS ──────────────────────────────────
   void _openEditProfile() async {
-    final updated = await Navigator.pushNamed(
-      context,
-      '/edit-profile',
-      arguments: _profile,
+    final updated = await showModalBottomSheet<UserProfile>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _EditProfileSheet(profile: _profile),
     );
-    if (updated != null && updated is UserProfile) {
+
+    if (updated != null) {
+      // Save to Firestore
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        await FirebaseFirestore.instance.collection('users').doc(uid).update({
+          'name': updated.name,
+          'location': updated.location,
+        });
+      }
+
       setState(() => _profile = updated);
-      _showSnack('Profile updated');
+      _showSnack("Profile updated");
     }
   }
 
@@ -136,7 +181,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xffF2F2F7),
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xffF4820A)),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: CustomAppBar(
@@ -613,6 +668,138 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         onTap: onTap,
       ),
+    );
+  }
+}
+
+// ── EDIT PROFILE BOTTOM SHEET ──────────────────────────────
+class _EditProfileSheet extends StatefulWidget {
+  final UserProfile profile;
+  const _EditProfileSheet({required this.profile});
+
+  @override
+  State<_EditProfileSheet> createState() => _EditProfileSheetState();
+}
+
+class _EditProfileSheetState extends State<_EditProfileSheet> {
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _locCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl = TextEditingController(text: widget.profile.name);
+    _locCtrl = TextEditingController(text: widget.profile.location);
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _locCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        left: 20,
+        right: 20,
+        top: 16,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Drag handle
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Edit Profile',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: AppColors.navy,
+            ),
+          ),
+          const SizedBox(height: 24),
+          _field('Full Name', _nameCtrl, Icons.person_outline_rounded),
+          const SizedBox(height: 14),
+          _field('Location', _locCtrl, Icons.location_on_outlined),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                elevation: 0,
+              ),
+              onPressed: () {
+                Navigator.pop(
+                  context,
+                  widget.profile.copyWith(
+                    name: _nameCtrl.text.trim(),
+                    location: _locCtrl.text.trim(),
+                  ),
+                );
+              },
+              child: const Text(
+                'Save Changes',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _field(String label, TextEditingController ctrl, IconData icon) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: ctrl,
+          decoration: InputDecoration(
+            prefixIcon: Icon(icon, color: AppColors.primary, size: 20),
+            filled: true,
+            fillColor: AppColors.background,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

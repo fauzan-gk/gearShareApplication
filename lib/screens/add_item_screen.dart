@@ -305,7 +305,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                       },
                       borderRadius: BorderRadius.circular(14),
                       child: Container(
-                        height: 160,
+                        height: 180,
                         width: double.infinity,
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
@@ -617,9 +617,13 @@ class _AddItemScreenState extends State<AddItemScreen> {
                         ),
                         value: _isAvailable,
                         activeThumbColor: AppColors.success,
-                        activeTrackColor: AppColors.success.withValues(alpha: 0.3),
+                        activeTrackColor: AppColors.success.withValues(
+                          alpha: 0.3,
+                        ),
                         inactiveThumbColor: AppColors.warning,
-                        inactiveTrackColor: AppColors.warning.withValues(alpha: 0.3),
+                        inactiveTrackColor: AppColors.warning.withValues(
+                          alpha: 0.3,
+                        ),
                         onChanged: (bool value) =>
                             setState(() => _isAvailable = value),
                       ),

@@ -235,6 +235,8 @@
 //   }
 // }
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -263,20 +265,50 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  void _handleRegister() {
+  void _handleRegister() async {
     if (_formKey.currentState!.validate()) {
-      // Real Firebase registration comes in Phase 3
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Account created successfully!'),
-          backgroundColor: Color(0xFF1B2A4A),
-        ),
-      );
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) {
-          Navigator.pushReplacementNamed(context, '/home');
+      try {
+        // Step 1: Create Firebase Auth account
+        final userCredential = await FirebaseAuth.instance
+            .createUserWithEmailAndPassword(
+              email: _emailController.text.trim(),
+              password: _passwordController.text.trim(),
+            );
+
+        // Step 2: Save display name to Auth profile
+        await userCredential.user!.updateDisplayName(
+          _nameController.text.trim(),
+        );
+
+        // Step 3: Create Firestore document for this user
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userCredential.user!.uid)
+            .set({
+              'name': _nameController.text.trim(),
+              'email': _emailController.text.trim(),
+              'location': '',
+              'listings': 0,
+              'rentals': 0,
+              'rating': 0.0,
+              'createdAt': FieldValue.serverTimestamp(),
+            });
+
+        Navigator.pushReplacementNamed(context, '/home');
+      } on FirebaseAuthException catch (e) {
+        String message = 'Registration failed';
+        if (e.code == 'email-already-in-use') {
+          message = 'An account already exists with this email';
+        } else if (e.code == 'weak-password') {
+          message = 'Password is too weak';
         }
-      });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: const Color(0xFF1B2A4A),
+          ),
+        );
+      }
     }
   }
 
