@@ -46,8 +46,12 @@ class ImageService {
     final ref = _storage
         .ref()
         .child('$folder/$uid/${DateTime.now().millisecondsSinceEpoch}');
-    await ref.putData(image.bytes);
-    return await ref.getDownloadURL();
+    await ref.putData(image.bytes).timeout(
+      const Duration(seconds: 30),
+    );
+    return await ref.getDownloadURL().timeout(
+      const Duration(seconds: 15),
+    );
   }
 
   static Future<List<String>> uploadImages(

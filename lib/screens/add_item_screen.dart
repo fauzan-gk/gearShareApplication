@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/custom_app_bar.dart';
@@ -98,80 +99,91 @@ class _AddItemScreenState extends State<AddItemScreen> {
   }
 
   void _submitForm() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isUploading = true);
-      try {
-        final uid = FirebaseAuth.instance.currentUser?.uid;
-        if (uid == null) return;
+    if (!_formKey.currentState!.validate()) return;
 
-        final userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .get();
-        final ownerName = userDoc.data()?['name'] as String? ?? 'Unknown';
-
-        List<String> imageUrls = [];
-        if (_pickedImages.isNotEmpty) {
-          final urls = await ImageService.uploadImages(
-            _pickedImages,
-            uid,
-            'listings',
-          );
-          imageUrls = urls;
-        }
-
-        await FirebaseFirestore.instance.collection('listings').add({
-          'name': _nameController.text.trim(),
-          'category': _selectedCategory,
-          'condition': _condition,
-          'description': _descriptionController.text.trim(),
-          'price': double.parse(_priceController.text.trim()),
-          'location': _locationController.text.trim(),
-          'isAvailable': _isAvailable,
-          'isFeatured': _isFeatured,
-          'ownerId': uid,
-          'ownerName': ownerName,
-          'imageUrls': imageUrls,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-
-        if (!mounted) return;
+    setState(() => _isUploading = true);
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) {
         setState(() => _isUploading = false);
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle_rounded, color: Colors.white),
-                const SizedBox(width: 10),
-                const Text('Listing published successfully!'),
-              ],
-            ),
-            backgroundColor: AppColors.success,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-            duration: const Duration(seconds: 2),
-          ),
+          const SnackBar(content: Text('You must be logged in')),
         );
-
-        _nameController.clear();
-        _priceController.clear();
-        _descriptionController.clear();
-        _locationController.clear();
-        setState(() {
-          _selectedCategory = null;
-          _isAvailable = true;
-          _condition = 'Good';
-          _pickedImages.clear();
-        });
-      } catch (e) {
-        if (!mounted) return;
-        setState(() => _isUploading = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to publish: $e')));
+        return;
       }
+
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
+      final ownerName = userDoc.data()?['name'] as String? ?? 'Unknown';
+
+      List<String> imageUrls = [];
+      if (_pickedImages.isNotEmpty) {
+        final urls = await ImageService.uploadImages(
+          _pickedImages,
+          uid,
+          'listings',
+        );
+        imageUrls = urls;
+      }
+
+      await FirebaseFirestore.instance.collection('listings').add({
+        'name': _nameController.text.trim(),
+        'category': _selectedCategory,
+        'condition': _condition,
+        'description': _descriptionController.text.trim(),
+        'price': double.parse(_priceController.text.trim()),
+        'location': _locationController.text.trim(),
+        'isAvailable': _isAvailable,
+        'isFeatured': _isFeatured,
+        'ownerId': uid,
+        'ownerName': ownerName,
+        'imageUrls': imageUrls,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      if (!mounted) return;
+      setState(() => _isUploading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle_rounded, color: Colors.white),
+              const SizedBox(width: 10),
+              const Text('Listing published successfully!'),
+            ],
+          ),
+          backgroundColor: AppColors.success,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+
+      _nameController.clear();
+      _priceController.clear();
+      _descriptionController.clear();
+      _locationController.clear();
+      setState(() {
+        _selectedCategory = null;
+        _isAvailable = true;
+        _condition = 'Good';
+        _pickedImages.clear();
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isUploading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to publish: ${e is TimeoutException ? "Upload timed out — check Firebase Storage is enabled" : e}'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 

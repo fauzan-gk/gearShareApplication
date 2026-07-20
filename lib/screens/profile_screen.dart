@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/custom_app_bar.dart';
@@ -148,13 +149,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _pickAvatar() async {
+    _showSnack('Selecting photo...');
     final picked = await ImageService.pickSingleImage();
     if (picked == null) return;
     if (!mounted) return;
 
     final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    if (uid == null) {
+      _showSnack('You must be logged in');
+      return;
+    }
 
+    _showSnack('Uploading photo...');
     try {
       final url = await ImageService.uploadImage(picked, uid, 'avatars');
       await FirebaseFirestore.instance.collection('users').doc(uid).update({
@@ -172,9 +178,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       });
       _showSnack('Profile photo updated');
+    } on TimeoutException {
+      if (!mounted) return;
+      _showSnack('Upload timed out — check Firebase Storage is enabled');
     } catch (e) {
       if (!mounted) return;
-      _showSnack('Failed to update photo');
+      _showSnack('Failed to update photo: $e');
     }
   }
 
