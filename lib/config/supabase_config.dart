@@ -1,0 +1,3 @@
+const String supabaseUrl = 'https://unnyphpsnjjuihpajytg.supabase.co';
+const String supabasePublishableKey =
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVubnlwaHBzbmpqdWlocGFqeXRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1NzUwODQsImV4cCI6MjEwMDE1MTA4NH0.GkJLibX7Co2KqaQ5TA9xmVNnrjYe293beIYIEG3Udm4';

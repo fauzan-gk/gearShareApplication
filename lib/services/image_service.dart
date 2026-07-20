@@ -1,6 +1,7 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PickedImage {
   final XFile file;
@@ -11,7 +12,8 @@ class PickedImage {
 
 class ImageService {
   static final ImagePicker _picker = ImagePicker();
-  static final FirebaseStorage _storage = FirebaseStorage.instance;
+  static final SupabaseClient _supabase = Supabase.instance.client;
+  static const String _bucket = 'gearshare-images';
 
   static Future<List<PickedImage>> pickImages({int maxCount = 5}) async {
     final images = await _picker.pickMultiImage(
@@ -38,20 +40,23 @@ class ImageService {
     return PickedImage(img, await img.readAsBytes());
   }
 
+  static String _filePath(String uid, String folder) {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    return '$folder/$uid/$timestamp';
+  }
+
   static Future<String> uploadImage(
     PickedImage image,
     String uid,
     String folder,
   ) async {
-    final ref = _storage
-        .ref()
-        .child('$folder/$uid/${DateTime.now().millisecondsSinceEpoch}');
-    await ref.putData(image.bytes).timeout(
-      const Duration(seconds: 30),
-    );
-    return await ref.getDownloadURL().timeout(
-      const Duration(seconds: 15),
-    );
+    final path = _filePath(uid, folder);
+    await _supabase.storage.from(_bucket).uploadBinary(
+      path,
+      image.bytes,
+    ).timeout(const Duration(seconds: 30));
+    final url = _supabase.storage.from(_bucket).getPublicUrl(path);
+    return url;
   }
 
   static Future<List<String>> uploadImages(
@@ -69,8 +74,9 @@ class ImageService {
 
   static Future<void> deleteImage(String url) async {
     try {
-      final ref = _storage.refFromURL(url);
-      await ref.delete();
+      final uri = Uri.parse(url);
+      final path = uri.pathSegments.skip(2).join('/');
+      await _supabase.storage.from(_bucket).remove([path]);
     } catch (_) {}
   }
 }
