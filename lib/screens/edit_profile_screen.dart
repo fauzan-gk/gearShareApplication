@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-// Define a UserProfile model class (add this at the top level or in a separate file)
 class UserProfile {
   final String name;
   final String location;
-  // Add other fields as needed
   final String email;
   final String phone;
   final String bio;
@@ -23,10 +23,34 @@ class UserProfile {
     required this.publicProfile,
     required this.showPhone,
   });
+
+  factory UserProfile.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>? ?? {};
+    return UserProfile(
+      name: data['name'] ?? '',
+      location: data['location'] ?? '',
+      email: data['email'] ?? '',
+      phone: data['phone'] ?? '',
+      bio: data['bio'] ?? '',
+      notifications: data['notifications'] ?? true,
+      publicProfile: data['publicProfile'] ?? true,
+      showPhone: data['showPhone'] ?? false,
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+    'name': name,
+    'location': location,
+    'email': email,
+    'phone': phone,
+    'bio': bio,
+    'notifications': notifications,
+    'publicProfile': publicProfile,
+    'showPhone': showPhone,
+  };
 }
 
 class EditProfileScreen extends StatefulWidget {
-  // Optional: accept an existing profile as argument
   final UserProfile? existingProfile;
 
   const EditProfileScreen({super.key, this.existingProfile});
@@ -45,171 +69,209 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool notifications = true;
   bool publicProfile = true;
   bool showPhone = false;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    // If an existing profile was passed, populate the controllers with it
-    if (widget.existingProfile != null) {
-      nameController.text = widget.existingProfile!.name;
-      emailController.text = widget.existingProfile!.email;
-      phoneController.text = widget.existingProfile!.phone;
-      locationController.text = widget.existingProfile!.location;
-      bioController.text = widget.existingProfile!.bio;
-      notifications = widget.existingProfile!.notifications;
-      publicProfile = widget.existingProfile!.publicProfile;
-      showPhone = widget.existingProfile!.showPhone;
-    } else {
-      // Default dummy data if no profile passed
-      nameController.text = "Urooj Fatima";
-      emailController.text = "urooj@gmail.com";
-      phoneController.text = "+92 300 1234567";
-      locationController.text = "Abbottabad, Pakistan";
-      bioController.text =
-          "Photography lover • Adventure seeker • Renting quality gear.";
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      setState(() => _isLoading = false);
+      return;
     }
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
+
+      if (doc.exists) {
+        final profile = UserProfile.fromFirestore(doc);
+        nameController.text = profile.name;
+        emailController.text = profile.email;
+        phoneController.text = profile.phone;
+        locationController.text = profile.location;
+        bioController.text = profile.bio;
+        notifications = profile.notifications;
+        publicProfile = profile.publicProfile;
+        showPhone = profile.showPhone;
+      }
+    } catch (_) {
+      // Use defaults if document doesn't exist or error occurs
+    }
+
+    setState(() => _isLoading = false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildHeader(context),
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+          : SingleChildScrollView(
               child: Column(
                 children: [
-                  _textField("Full Name", Icons.person_outline, nameController),
-                  const SizedBox(height: 18),
-                  _textField("Email", Icons.email_outlined, emailController),
-                  const SizedBox(height: 18),
-                  _textField(
-                    "Phone Number",
-                    Icons.phone_outlined,
-                    phoneController,
-                  ),
-                  const SizedBox(height: 18),
-                  _textField(
-                    "Location",
-                    Icons.location_on_outlined,
-                    locationController,
-                  ),
-                  const SizedBox(height: 18),
-                  _textField(
-                    "Bio",
-                    Icons.edit_note,
-                    bioController,
-                    maxLines: 4,
-                  ),
-                  const SizedBox(height: 30),
-
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      "Preferences",
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-
-                  _switchTile(
-                    "Public Profile",
-                    Icons.public,
-                    publicProfile,
-                    (value) => setState(() => publicProfile = value),
-                  ),
-                  _switchTile(
-                    "Receive Notifications",
-                    Icons.notifications_active_outlined,
-                    notifications,
-                    (value) => setState(() => notifications = value),
-                  ),
-                  _switchTile(
-                    "Show Phone Number",
-                    Icons.phone_android,
-                    showPhone,
-                    (value) => setState(() => showPhone = value),
-                  ),
-
-                  const SizedBox(height: 28),
-
-                  // ── SAVE BUTTON ─────────────────────────
-                  SizedBox(
-                    width: double.infinity,
-                    height: 54,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                  _buildHeader(context),
+                  const SizedBox(height: 20),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 18),
+                    child: Column(
+                      children: [
+                        _textField("Full Name", Icons.person_outline, nameController),
+                        const SizedBox(height: 18),
+                        _textField("Email", Icons.email_outlined, emailController),
+                        const SizedBox(height: 18),
+                        _textField(
+                          "Phone Number",
+                          Icons.phone_outlined,
+                          phoneController,
                         ),
-                      ),
-                      onPressed: () {
-                        // Create updated profile object
-                        final updatedProfile = UserProfile(
-                          name: nameController.text,
-                          location: locationController.text,
-                          email: emailController.text,
-                          phone: phoneController.text,
-                          bio: bioController.text,
-                          notifications: notifications,
-                          publicProfile: publicProfile,
-                          showPhone: showPhone,
-                        );
+                        const SizedBox(height: 18),
+                        _textField(
+                          "Location",
+                          Icons.location_on_outlined,
+                          locationController,
+                        ),
+                        const SizedBox(height: 18),
+                        _textField(
+                          "Bio",
+                          Icons.edit_note,
+                          bioController,
+                          maxLines: 4,
+                        ),
+                        const SizedBox(height: 30),
 
-                        // Pop the screen and return the updated profile
-                        Navigator.pop(context, updatedProfile);
-
-                        // Show success message
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text(
-                              'Profile updated successfully!',
-                            ),
-                            backgroundColor: AppColors.success,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            "Preferences",
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimaryFor(context),
                             ),
                           ),
-                        );
-                      },
-                      child: const Text(
-                        "Save Changes",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
                         ),
-                      ),
+                        const SizedBox(height: 14),
+
+                        _switchTile(
+                          "Public Profile",
+                          Icons.public,
+                          publicProfile,
+                          (value) => setState(() => publicProfile = value),
+                        ),
+                        _switchTile(
+                          "Receive Notifications",
+                          Icons.notifications_active_outlined,
+                          notifications,
+                          (value) => setState(() => notifications = value),
+                        ),
+                        _switchTile(
+                          "Show Phone Number",
+                          Icons.phone_android,
+                          showPhone,
+                          (value) => setState(() => showPhone = value),
+                        ),
+
+                        const SizedBox(height: 28),
+
+                        SizedBox(
+                          width: double.infinity,
+                          height: 54,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            onPressed: _saveProfile,
+                            child: const Text(
+                              "Save Changes",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 40),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 40),
                 ],
               ),
             ),
-          ],
-        ),
-      ),
     );
   }
 
-  // ── HEADER ────────────────────────────────────────────────
+  Future<void> _saveProfile() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final profile = UserProfile(
+      name: nameController.text,
+      location: locationController.text,
+      email: emailController.text,
+      phone: phoneController.text,
+      bio: bioController.text,
+      notifications: notifications,
+      publicProfile: publicProfile,
+      showPhone: showPhone,
+    );
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .set(profile.toMap(), SetOptions(merge: true));
+
+      await FirebaseAuth.instance.currentUser
+          ?.updateDisplayName(profile.name);
+
+      if (!mounted) return;
+
+      Navigator.pop(context, profile);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Profile updated successfully!'),
+          backgroundColor: AppColors.success,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to save profile: $e'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    }
+  }
+
   Widget _buildHeader(BuildContext context) {
     return Container(
       width: double.infinity,
-      decoration: const BoxDecoration(
-        color: AppColors.navy,
-        borderRadius: BorderRadius.only(
+      decoration: BoxDecoration(
+        color: AppColors.navyFor(context),
+        borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(40),
           bottomRight: Radius.circular(40),
         ),
@@ -265,9 +327,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             width: 3,
                           ),
                         ),
-                        child: const CircleAvatar(
+                        child: CircleAvatar(
                           radius: 52,
-                          backgroundColor: AppColors.navyLight,
+                          backgroundColor: AppColors.navyLightFor(context),
                           child: Icon(
                             Icons.person,
                             size: 60,
@@ -326,20 +388,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 14,
-            color: AppColors.textPrimary,
+            color: AppColors.textPrimaryFor(context),
           ),
         ),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: AppColors.surfaceFor(context),
             borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
-                color: AppColors.navy.withValues(alpha: 0.06),
+                color: AppColors.navyFor(context).withValues(alpha: 0.06),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -362,7 +424,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
               ),
               filled: true,
-              fillColor: AppColors.surface,
+              fillColor: AppColors.surfaceFor(context),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 14,
                 vertical: 14,
@@ -383,11 +445,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.surfaceFor(context),
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: AppColors.navy.withValues(alpha: 0.06),
+            color: AppColors.navyFor(context).withValues(alpha: 0.06),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -400,10 +462,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         secondary: Icon(icon, color: AppColors.primary),
         title: Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 14,
-            color: AppColors.textPrimary,
+            color: AppColors.textPrimaryFor(context),
           ),
         ),
       ),

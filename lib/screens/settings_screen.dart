@@ -1,54 +1,44 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../constants/custom_app_bar.dart';
+import '../providers/theme_provider.dart';
 
-// ─────────────────────────────────────────────────────────────
-// SETTINGS SCREEN
-// StatefulWidget because switches (notifications, dark mode, etc.)
-// need to remember their on/off state and rebuild when toggled.
-// ─────────────────────────────────────────────────────────────
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
-}
-
-class _SettingsScreenState extends State<SettingsScreen> {
-  // Toggle states — Phase 3: persist these to Shared Preferences
-  // or the user's Firestore document instead of just in-memory.
-  bool _pushNotifications = true;
-  bool _emailNotifications = false;
-  bool _locationServices = true;
-  bool _darkMode = false;
-
-  @override
   Widget build(BuildContext context) {
+    final themeProvider = context.watch<ThemeProvider>();
+    final isDark = themeProvider.isDarkMode;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: const CustomAppBar(title: 'Settings'),
+      backgroundColor: AppColors.backgroundFor(context),
+      appBar: CustomAppBar(title: 'Settings'),
 
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── NOTIFICATIONS SECTION ─────────────────────────
             _SectionCard(
+              context: context,
               title: 'Notifications',
               child: Column(
                 children: [
                   _switchTile(
+                    context,
                     'Push Notifications',
                     Icons.notifications_active_outlined,
-                    _pushNotifications,
-                    (value) => setState(() => _pushNotifications = value),
+                    true,
+                    (_) {},
                   ),
                   _switchTile(
+                    context,
                     'Email Notifications',
                     Icons.email_outlined,
-                    _emailNotifications,
-                    (value) => setState(() => _emailNotifications = value),
+                    false,
+                    (_) {},
                   ),
                 ],
               ),
@@ -56,36 +46,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             const SizedBox(height: 16),
 
-            // ── PRIVACY SECTION ────────────────────────────────
             _SectionCard(
+              context: context,
               title: 'Privacy',
               child: _switchTile(
+                context,
                 'Location Services',
                 Icons.location_on_outlined,
-                _locationServices,
-                (value) => setState(() => _locationServices = value),
+                true,
+                (_) {},
               ),
             ),
 
             const SizedBox(height: 16),
 
-            // ── APPEARANCE SECTION ─────────────────────────────
             _SectionCard(
+              context: context,
               title: 'Appearance',
               child: _switchTile(
+                context,
                 'Dark Mode',
                 Icons.dark_mode_outlined,
-                _darkMode,
-                (value) => setState(() => _darkMode = value),
+                isDark,
+                (value) => themeProvider.setDarkMode(value),
               ),
             ),
 
             const SizedBox(height: 16),
 
-            // ── ACCOUNT SECTION ─────────────────────────────────
-            // Simple navigational tiles (no switches) — each one
-            // would push to a dedicated screen or show a dialog.
             _SectionCard(
+              context: context,
               title: 'Account',
               child: Column(
                 children: [
@@ -93,10 +83,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     context,
                     'Change Password',
                     Icons.lock_outline,
-                    onTap: () {
-                      // TODO Phase 3: navigate to a change-password flow
-                      // backed by Firebase Authentication
-                    },
+                    onTap: () {},
                   ),
                   _navTile(
                     context,
@@ -116,16 +103,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             const SizedBox(height: 24),
 
-            // ── LOGOUT BUTTON ────────────────────────────────────
             SizedBox(
               width: double.infinity,
               height: 52,
               child: OutlinedButton.icon(
                 onPressed: () {
-                  // Clears the navigation stack and sends the user back
-                  // to Login — pushReplacementNamed on its own would still
-                  // leave Home/Profile etc. behind it in the stack, so we
-                  // use pushNamedAndRemoveUntil to wipe everything.
                   Navigator.pushNamedAndRemoveUntil(
                     context,
                     '/login',
@@ -142,7 +124,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: AppColors.error.withOpacity(0.5)),
+                  side: BorderSide(color: AppColors.error.withValues(alpha: 0.5)),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
@@ -155,9 +137,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // Reusable switch row — icon + label + Switch, no extra card needed
-  // per row since _SectionCard already wraps the whole group.
   Widget _switchTile(
+    BuildContext context,
     String title,
     IconData icon,
     bool value,
@@ -167,20 +148,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
       contentPadding: EdgeInsets.zero,
       value: value,
       onChanged: onChanged,
-      activeColor: AppColors.primary,
+      activeTrackColor: AppColors.primary,
       secondary: Icon(icon, color: AppColors.primary, size: 22),
       title: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontWeight: FontWeight.w600,
           fontSize: 14,
-          color: AppColors.textPrimary,
+          color: AppColors.textPrimaryFor(context),
         ),
       ),
     );
   }
 
-  // Reusable navigational row — icon + label + chevron, tappable.
   Widget _navTile(
     BuildContext context,
     String title,
@@ -193,57 +173,61 @@ class _SettingsScreenState extends State<SettingsScreen> {
       leading: Icon(icon, color: AppColors.primary, size: 22),
       title: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontWeight: FontWeight.w600,
           fontSize: 14,
-          color: AppColors.textPrimary,
+          color: AppColors.textPrimaryFor(context),
         ),
       ),
-      trailing: const Icon(
+      trailing: Icon(
         Icons.arrow_forward_ios_rounded,
         size: 14,
-        color: AppColors.textHint,
+        color: AppColors.textHintFor(context),
       ),
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// SECTION CARD WIDGET
-// Same reusable pattern as AddItemScreen/EditItemScreen — groups
-// related settings under one white card with a bold title.
-// ─────────────────────────────────────────────────────────────
 class _SectionCard extends StatelessWidget {
+  final BuildContext context;
   final String title;
   final Widget child;
 
-  const _SectionCard({required this.title, required this.child});
+  const _SectionCard({
+    required this.context,
+    required this.title,
+    required this.child,
+  });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext ctx) {
+    final isDark = Theme.of(ctx).brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.surfaceFor(ctx),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.navy.withOpacity(0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: AppColors.navyFor(ctx).withValues(alpha: 0.06),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+              color: AppColors.textPrimaryFor(ctx),
             ),
           ),
           const SizedBox(height: 4),

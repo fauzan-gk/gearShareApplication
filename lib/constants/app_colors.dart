@@ -62,8 +62,58 @@ class AppColors {
   // ---- Borders ----
   static const Color border = Color(0xFFE0E6EF);
 
+  // ---- Dark Mode ----
+  static const Color darkBackground = Color(0xFF121212);
+  static const Color darkSurface = Color(0xFF1E1E1E);
+  static const Color darkNavy = Color(0xFF0D1B2A);
+  static const Color darkTextPrimary = Color(0xFFE0E0E0);
+  static const Color darkTextSecondary = Color(0xFF9E9E9E);
+  static const Color darkTextHint = Color(0xFF616161);
+  static const Color darkBorder = Color(0xFF2C2C2C);
+
   // ---- Status colors ----
   static const Color success = Color(0xFF28A745);
   static const Color error = Color(0xFFDC3545);
   static const Color warning = Color(0xFFFFC107);
+
+  // ---- Helper getters (context-aware) ----
+  static Color backgroundFor(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark
+      ? darkBackground
+      : background;
+
+  static Color surfaceFor(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark
+      ? darkSurface
+      : surface;
+
+  static Color navyFor(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark
+      ? darkNavy
+      : navy;
+
+  static Color navyLightFor(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark
+      ? darkNavy
+      : navyLight;
+
+  static Color textPrimaryFor(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark
+      ? darkTextPrimary
+      : textPrimary;
+
+  static Color textSecondaryFor(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark
+      ? darkTextSecondary
+      : textSecondary;
+
+  static Color textHintFor(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark
+      ? darkTextHint
+      : textHint;
+
+  static Color borderFor(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark
+      ? darkBorder
+      : border;
 }

@@ -294,6 +294,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               'createdAt': FieldValue.serverTimestamp(),
             });
 
+        if (!mounted) return;
         Navigator.pushReplacementNamed(context, '/home');
       } on FirebaseAuthException catch (e) {
         String message = 'Registration failed';
@@ -302,6 +303,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         } else if (e.code == 'weak-password') {
           message = 'Password is too weak';
         }
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(message),

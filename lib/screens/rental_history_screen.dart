@@ -1,15 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../constants/app_colors.dart';
 import '../constants/custom_app_bar.dart';
 import '../constants/app_drawer.dart';
 
-// ─────────────────────────────────────────────────────────────
-// RENTAL HISTORY SCREEN
-// Changed from StatelessWidget to StatefulWidget — the filter chips
-// need to remember WHICH one is currently selected, and the list needs
-// to actually filter based on that. A StatelessWidget has no way to
-// hold or update that kind of changing information.
-// ─────────────────────────────────────────────────────────────
 class RentalHistoryScreen extends StatefulWidget {
   const RentalHistoryScreen({super.key});
 
@@ -18,42 +13,50 @@ class RentalHistoryScreen extends StatefulWidget {
 }
 
 class _RentalHistoryScreenState extends State<RentalHistoryScreen> {
-  // Tracks which filter chip is currently selected.
   String _selectedFilter = 'All Rentals';
-
   final List<String> _filters = ['All Rentals', 'Active', 'Completed'];
+  List<RentalHistoryCard> _allRentals = [];
+  bool _isLoading = true;
 
-  // Dummy data — in Phase 3 this comes from a Firestore query instead.
-  final List<RentalHistoryCard> _allRentals = const [
-    RentalHistoryCard(
-      itemName: 'Sony A7III Camera',
-      renterName: 'Ahmed Khan',
-      rentalDate: '12 Jun 2026',
-      returnDate: '15 Jun 2026',
-      totalAmount: 1500,
-      isCompleted: true,
-    ),
-    RentalHistoryCard(
-      itemName: 'JBL Speaker Set',
-      renterName: 'Ali Hassan',
-      rentalDate: '20 Jun 2026',
-      returnDate: '23 Jun 2026',
-      totalAmount: 600,
-      isCompleted: false,
-    ),
-    RentalHistoryCard(
-      itemName: 'Power Drill',
-      renterName: 'Usman Tariq',
-      rentalDate: '25 Jun 2026',
-      returnDate: '28 Jun 2026',
-      totalAmount: 450,
-      isCompleted: true,
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadRentals();
+  }
 
-  // Getter — recomputes the filtered list fresh every rebuild.
-  // Same pattern used in BrowseSearchScreen and CategoryScreen,
-  // so all three "list + filter" screens work identically.
+  Future<void> _loadRentals() async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser!.uid;
+      final snapshot = await FirebaseFirestore.instance
+          .collection('rentals')
+          .where('renterId', isEqualTo: uid)
+          .orderBy('rentalDate', descending: true)
+          .get();
+
+      setState(() {
+        _allRentals = snapshot.docs.map((doc) {
+          final data = doc.data();
+          return RentalHistoryCard(
+            itemName: data['itemName'] ?? 'Unknown Item',
+            renterName: data['renterName'] ?? 'Unknown',
+            rentalDate: _formatDate((data['rentalDate'] as Timestamp).toDate()),
+            returnDate: _formatDate((data['returnDate'] as Timestamp).toDate()),
+            totalAmount: data['totalAmount'] ?? 0,
+            isCompleted: data['isCompleted'] ?? false,
+          );
+        }).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+
   List<RentalHistoryCard> get _filteredRentals {
     if (_selectedFilter == 'All Rentals') return _allRentals;
     final wantsCompleted = _selectedFilter == 'Completed';
@@ -63,13 +66,11 @@ class _RentalHistoryScreenState extends State<RentalHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: const CustomAppBar(title: 'Rental History'),
       drawer: const AppDrawer(currentRoute: '/rental-history'),
 
       body: Column(
         children: [
-          // ── FILTER CHIPS ────────────────────────────────────
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -78,9 +79,6 @@ class _RentalHistoryScreenState extends State<RentalHistoryScreen> {
                 final isActive = filter == _selectedFilter;
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
-                  // GestureDetector is what makes the chip actually tappable.
-                  // The original version had no way to detect a tap at all —
-                  // it was just a Container with no gesture handling attached.
                   child: GestureDetector(
                     onTap: () => setState(() => _selectedFilter = filter),
                     child: AnimatedContainer(
@@ -90,12 +88,12 @@ class _RentalHistoryScreenState extends State<RentalHistoryScreen> {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: isActive ? AppColors.primary : AppColors.surface,
+                        color: isActive ? AppColors.primary : AppColors.surfaceFor(context),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: isActive
                               ? AppColors.primary
-                              : AppColors.border,
+                              : AppColors.borderFor(context),
                         ),
                       ),
                       child: Text(
@@ -103,7 +101,7 @@ class _RentalHistoryScreenState extends State<RentalHistoryScreen> {
                         style: TextStyle(
                           color: isActive
                               ? Colors.white
-                              : AppColors.textSecondary,
+                              : AppColors.textSecondaryFor(context),
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
                         ),
@@ -115,24 +113,24 @@ class _RentalHistoryScreenState extends State<RentalHistoryScreen> {
             ),
           ),
 
-          // ── RENTAL LIST ──────────────────────────────────────
           Expanded(
-            child: _filteredRentals.isEmpty
-                ? _buildEmptyState()
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                    itemCount: _filteredRentals.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: 14),
-                    itemBuilder: (context, index) => _filteredRentals[index],
-                  ),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _filteredRentals.isEmpty
+                    ? _buildEmptyState()
+                    : ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                        itemCount: _filteredRentals.length,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 14),
+                        itemBuilder: (context, index) => _filteredRentals[index],
+                      ),
           ),
         ],
       ),
     );
   }
 
-  // Shown when a filter matches zero rentals (e.g. no "Active" rentals yet).
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -141,15 +139,15 @@ class _RentalHistoryScreenState extends State<RentalHistoryScreen> {
           Icon(
             Icons.receipt_long_outlined,
             size: 56,
-            color: AppColors.textHint,
+            color: AppColors.textHintFor(context),
           ),
           const SizedBox(height: 14),
           Text(
-            'No ${_selectedFilter.toLowerCase()} found',
-            style: const TextStyle(
+            _isLoading ? 'Loading...' : 'No ${_selectedFilter.toLowerCase()} found',
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+              color: AppColors.textPrimaryFor(context),
             ),
           ),
         ],
@@ -158,11 +156,6 @@ class _RentalHistoryScreenState extends State<RentalHistoryScreen> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// RENTAL HISTORY CARD WIDGET
-// Kept as StatelessWidget — a single card never changes on its own,
-// it just displays whatever data it's given.
-// ─────────────────────────────────────────────────────────────
 class RentalHistoryCard extends StatelessWidget {
   final String itemName;
   final String renterName;
@@ -186,13 +179,11 @@ class RentalHistoryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.surfaceFor(context),
         borderRadius: BorderRadius.circular(16),
-        // Shadow only — no border. Matches the "pick one separation
-        // method, not both" fix applied to the other screens.
         boxShadow: [
           BoxShadow(
-            color: AppColors.navy.withValues(alpha: 0.06),
+            color: AppColors.navyFor(context).withValues(alpha: 0.06),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -201,17 +192,16 @@ class RentalHistoryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Row 1: Item Title & Status Badge
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
                 child: Text(
                   itemName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                    color: AppColors.textPrimaryFor(context),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -223,9 +213,6 @@ class RentalHistoryCard extends StatelessWidget {
                   vertical: 5,
                 ),
                 decoration: BoxDecoration(
-                  // Using the centralized status colors instead of raw
-                  // Colors.green / Colors.orange — keeps this card in
-                  // sync if the palette ever changes.
                   color: isCompleted
                       ? AppColors.success.withValues(alpha: 0.12)
                       : AppColors.warning.withValues(alpha: 0.15),
@@ -246,23 +233,22 @@ class RentalHistoryCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
 
-          // Row 2: Renter Details
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.person_outline,
                 size: 16,
-                color: AppColors.textSecondary,
+                color: AppColors.textSecondaryFor(context),
               ),
               const SizedBox(width: 6),
-              const Text(
+              Text(
                 'Renter: ',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                style: TextStyle(color: AppColors.textSecondaryFor(context), fontSize: 13),
               ),
               Text(
                 renterName,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
+                style: TextStyle(
+                  color: AppColors.textPrimaryFor(context),
                   fontWeight: FontWeight.w500,
                   fontSize: 13,
                 ),
@@ -271,39 +257,37 @@ class RentalHistoryCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
 
-          // Row 3: Visual Rental Timeline
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.background,
+              color: AppColors.backgroundFor(context),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildDateBlock('Rental Date', rentalDate),
-                const Icon(
+                _buildDateBlock(context, 'Rental Date', rentalDate),
+                Icon(
                   Icons.arrow_forward,
                   size: 14,
-                  color: AppColors.textSecondary,
+                  color: AppColors.textSecondaryFor(context),
                 ),
-                _buildDateBlock('Return Date', returnDate),
+                _buildDateBlock(context, 'Return Date', returnDate),
               ],
             ),
           ),
 
           const SizedBox(height: 12),
-          const Divider(color: AppColors.border, height: 1),
+          Divider(color: AppColors.borderFor(context), height: 1),
           const SizedBox(height: 12),
 
-          // Row 4: Pricing Summary
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Total Revenue',
                 style: TextStyle(
-                  color: AppColors.textSecondary,
+                  color: AppColors.textSecondaryFor(context),
                   fontWeight: FontWeight.w500,
                   fontSize: 13,
                 ),
@@ -323,28 +307,27 @@ class RentalHistoryCard extends StatelessWidget {
     );
   }
 
-  // Inner Date Element Helper
-  Widget _buildDateBlock(String title, String date) {
+  Widget _buildDateBlock(BuildContext context, String title, String date) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           title,
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+          style: TextStyle(color: AppColors.textSecondaryFor(context), fontSize: 11),
         ),
         const SizedBox(height: 2),
         Row(
           children: [
-            const Icon(
+            Icon(
               Icons.calendar_today_outlined,
               size: 12,
-              color: AppColors.textPrimary,
+              color: AppColors.textPrimaryFor(context),
             ),
             const SizedBox(width: 4),
             Text(
               date,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
+              style: TextStyle(
+                color: AppColors.textPrimaryFor(context),
                 fontWeight: FontWeight.w600,
                 fontSize: 13,
               ),

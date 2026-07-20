@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+
+import 'package:provider/provider.dart';
 import 'firebase_options.dart';
+import 'providers/theme_provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -25,7 +27,12 @@ import 'screens/settings_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(const GearShareApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => ThemeProvider(),
+      child: const GearShareApp(),
+    ),
+  );
 }
 
 class GearShareApp extends StatelessWidget {
@@ -33,11 +40,18 @@ class GearShareApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = context.watch<ThemeProvider>();
+
     return MaterialApp(
       title: 'GearShare',
       debugShowCheckedModeBanner: false,
+      themeMode: themeProvider.themeMode,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
+        brightness: Brightness.light,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AppColors.primary,
+          brightness: Brightness.light,
+        ),
         primaryColor: AppColors.primary,
         scaffoldBackgroundColor: AppColors.background,
         appBarTheme: const AppBarTheme(
@@ -46,50 +60,112 @@ class GearShareApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AppColors.primary,
+          brightness: Brightness.dark,
+        ),
+        primaryColor: AppColors.primary,
+        scaffoldBackgroundColor: AppColors.darkBackground,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: AppColors.darkNavy,
+          foregroundColor: Colors.white,
+        ),
+        useMaterial3: true,
+      ),
       home: const SplashScreen(),
-      routes: {
-        '/login': (context) => const LoginScreen(),
-        '/register': (context) => const RegisterScreen(),
-        '/forgot-password': (context) => const ForgotPasswordScreen(),
-        '/home': (context) => const HomeScreen(),
-        '/manage-requests': (context) => const ManageRequestsScreen(),
-        '/add-item': (context) => const AddItemScreen(),
-        '/my-listings': (context) => const MyListingsScreen(),
-        '/rental-history': (context) => const RentalHistoryScreen(),
-        '/browse-search': (context) => const BrowseSearchScreen(),
-        '/category': (context) => const CategoryScreen(),
-        '/profile': (context) => const ProfileScreen(),
-        '/edit-profile': (context) => const EditProfileScreen(),
-        '/ratings': (context) => const RatingsScreen(),
-        '/settings': (context) => const SettingsScreen(),
-      },
       onGenerateRoute: (settings) {
-        if (settings.name == '/item-detail') {
-          final args = settings.arguments as Map<String, String>;
-          return MaterialPageRoute(
-            builder: (context) => ItemDetailScreen(
+        Widget page;
+        switch (settings.name) {
+          case '/login':
+            page = const LoginScreen();
+            break;
+          case '/register':
+            page = const RegisterScreen();
+            break;
+          case '/forgot-password':
+            page = const ForgotPasswordScreen();
+            break;
+          case '/home':
+            page = const HomeScreen();
+            break;
+          case '/manage-requests':
+            page = const ManageRequestsScreen();
+            break;
+          case '/add-item':
+            page = const AddItemScreen();
+            break;
+          case '/my-listings':
+            page = const MyListingsScreen();
+            break;
+          case '/rental-history':
+            page = const RentalHistoryScreen();
+            break;
+          case '/browse-search':
+            page = const BrowseSearchScreen();
+            break;
+          case '/category':
+            page = const CategoryScreen();
+            break;
+          case '/profile':
+            page = const ProfileScreen();
+            break;
+          case '/edit-profile':
+            page = const EditProfileScreen();
+            break;
+          case '/ratings':
+            page = const RatingsScreen();
+            break;
+          case '/settings':
+            page = const SettingsScreen();
+            break;
+          case '/item-detail': {
+            final args = settings.arguments as Map<String, String>;
+            page = ItemDetailScreen(listingId: args['listingId']!);
+            break;
+          }
+          case '/rental-request': {
+            final args = settings.arguments as Map<String, String>;
+            page = RentalRequestScreen(
               itemName: args['itemName']!,
               itemPrice: args['itemPrice']!,
-            ),
-          );
+            );
+            break;
+          }
+          case '/edit-item': {
+            final args = settings.arguments as Map<String, String>;
+            page = EditItemScreen(listingId: args['listingId']!);
+            break;
+          }
+          default:
+            page = const Scaffold(
+              body: Center(child: Text('Page not found')),
+            );
         }
-        if (settings.name == '/rental-request') {
-          final args = settings.arguments as Map<String, String>;
-          return MaterialPageRoute(
-            builder: (context) => RentalRequestScreen(
-              itemName: args['itemName']!,
-              itemPrice: args['itemPrice']!,
-            ),
-          );
-        }
-        if (settings.name == '/edit-item') {
-          return MaterialPageRoute(
-            builder: (context) => const EditItemScreen(),
-          );
-        }
-        return MaterialPageRoute(
-          builder: (context) =>
-              const Scaffold(body: Center(child: Text('Page not found'))),
+        return PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) => page,
+          transitionsBuilder: (
+            context,
+            animation,
+            secondaryAnimation,
+            child,
+          ) {
+            const begin = Offset(0.0, 0.03);
+            const end = Offset.zero;
+            const curve = Curves.easeInOutCubic;
+            final tween = Tween(begin: begin, end: end).chain(
+              CurveTween(curve: curve),
+            );
+            return FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: animation.drive(tween),
+                child: child,
+              ),
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 300),
         );
       },
     );

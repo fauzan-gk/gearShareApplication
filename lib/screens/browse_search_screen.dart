@@ -116,7 +116,7 @@ class _BrowseSearchScreenState extends State<BrowseSearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      
       appBar: CustomAppBar(
         title: 'Browse Gear',
         actions: [
@@ -141,11 +141,11 @@ class _BrowseSearchScreenState extends State<BrowseSearchScreen> {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: Container(
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: AppColors.surfaceFor(context),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.navy.withValues(alpha: 0.08),
+                    color: AppColors.navyFor(context).withValues(alpha: 0.08),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),
@@ -155,22 +155,22 @@ class _BrowseSearchScreenState extends State<BrowseSearchScreen> {
                 onChanged: (value) => setState(() => _searchQuery = value),
                 decoration: InputDecoration(
                   hintText: 'Search cameras, tools, tents...',
-                  hintStyle: const TextStyle(color: AppColors.textHint),
-                  prefixIcon: const Icon(
+                  hintStyle: TextStyle(color: AppColors.textHintFor(context)),
+                  prefixIcon: Icon(
                     Icons.search,
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondaryFor(context),
                   ),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.clear_rounded,
-                            color: AppColors.textHint,
+                            color: AppColors.textHintFor(context),
                           ),
                           onPressed: () => setState(() => _searchQuery = ''),
                         )
                       : null,
                   filled: true,
-                  fillColor: AppColors.surface,
+                  fillColor: AppColors.surfaceFor(context),
                   contentPadding: const EdgeInsets.symmetric(vertical: 14),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -188,7 +188,7 @@ class _BrowseSearchScreenState extends State<BrowseSearchScreen> {
                     ),
                   ),
                 ),
-                style: const TextStyle(color: AppColors.textPrimary),
+                style: TextStyle(color: AppColors.textPrimaryFor(context)),
               ),
             ),
           ),
@@ -204,7 +204,7 @@ class _BrowseSearchScreenState extends State<BrowseSearchScreen> {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: _filters.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
                 final filter = _filters[index];
                 final isSelected = filter == _selectedFilter;
@@ -217,12 +217,12 @@ class _BrowseSearchScreenState extends State<BrowseSearchScreen> {
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: isSelected ? AppColors.primary : AppColors.surface,
+                      color: isSelected ? AppColors.primary : AppColors.surfaceFor(context),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: isSelected
                             ? AppColors.primary
-                            : AppColors.border,
+                            : AppColors.borderFor(context),
                       ),
                     ),
                     child: Text(
@@ -232,7 +232,7 @@ class _BrowseSearchScreenState extends State<BrowseSearchScreen> {
                         fontWeight: FontWeight.w500,
                         color: isSelected
                             ? Colors.white
-                            : AppColors.textSecondary,
+                            : AppColors.textSecondaryFor(context),
                       ),
                     ),
                   ),
@@ -288,12 +288,12 @@ class _BrowseSearchScreenState extends State<BrowseSearchScreen> {
                                 ),
                               ),
                               const SizedBox(width: 4),
-                              const Text(
+                              Text(
                                 'items found',
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
-                                  color: AppColors.textSecondary,
+                                  color: AppColors.textSecondaryFor(context),
                                 ),
                               ),
                             ],
@@ -304,20 +304,20 @@ class _BrowseSearchScreenState extends State<BrowseSearchScreen> {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.surface,
+                              color: AppColors.surfaceFor(context),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: AppColors.border,
+                                color: AppColors.borderFor(context),
                                 width: 1,
                               ),
                             ),
                             child: DropdownButtonHideUnderline(
                               child: DropdownButton<String>(
                                 value: _sortBy,
-                                icon: const Icon(
+                                icon: Icon(
                                   Icons.sort_rounded,
                                   size: 16,
-                                  color: AppColors.textSecondary,
+                                  color: AppColors.textSecondaryFor(context),
                                 ),
                                 items: const [
                                   DropdownMenuItem(
@@ -375,9 +375,7 @@ class _BrowseSearchScreenState extends State<BrowseSearchScreen> {
                                     context,
                                     '/item-detail',
                                     arguments: {
-                                      'itemName': item.name,
-                                      'itemPrice':
-                                          'Rs. ${item.pricePerDay.toInt()}/day',
+                                      'listingId': item.id,
                                     },
                                   ),
                                 );
@@ -399,11 +397,11 @@ class _BrowseSearchScreenState extends State<BrowseSearchScreen> {
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.surfaceFor(context),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: AppColors.navy.withValues(alpha: 0.04),
+            color: AppColors.navyFor(context).withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -412,12 +410,12 @@ class _BrowseSearchScreenState extends State<BrowseSearchScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Quick Filters',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+              color: AppColors.textPrimaryFor(context),
             ),
           ),
           const SizedBox(height: 8),
@@ -489,12 +487,12 @@ class _BrowseSearchScreenState extends State<BrowseSearchScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'No Gear Found',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+                color: AppColors.textPrimaryFor(context),
               ),
             ),
             const SizedBox(height: 6),
@@ -502,7 +500,7 @@ class _BrowseSearchScreenState extends State<BrowseSearchScreen> {
               _searchQuery.isEmpty
                   ? 'No items in this category'
                   : 'Try adjusting your search or filters',
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+              style: TextStyle(fontSize: 14, color: AppColors.textSecondaryFor(context)),
             ),
             const SizedBox(height: 20),
             if (_searchQuery.isNotEmpty || _selectedFilter != 'All')
@@ -567,11 +565,11 @@ class _GearListItem extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: AppColors.surfaceFor(context),
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: AppColors.navy.withValues(alpha: 0.04),
+              color: AppColors.navyFor(context).withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -623,10 +621,10 @@ class _GearListItem extends StatelessWidget {
                 children: [
                   Text(
                     item.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+                      color: AppColors.textPrimaryFor(context),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -637,28 +635,28 @@ class _GearListItem extends StatelessWidget {
                       Icon(
                         Icons.person_outline_rounded,
                         size: 12,
-                        color: AppColors.textSecondary,
+                        color: AppColors.textSecondaryFor(context),
                       ),
                       const SizedBox(width: 2),
                       Text(
                         item.owner,
                         style: TextStyle(
                           fontSize: 11,
-                          color: AppColors.textSecondary,
+                          color: AppColors.textSecondaryFor(context),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Icon(
                         Icons.location_on_outlined,
                         size: 12,
-                        color: AppColors.textSecondary,
+                        color: AppColors.textSecondaryFor(context),
                       ),
                       const SizedBox(width: 2),
                       Text(
                         item.location,
                         style: TextStyle(
                           fontSize: 11,
-                          color: AppColors.textSecondary,
+                          color: AppColors.textSecondaryFor(context),
                         ),
                       ),
                     ],
@@ -698,7 +696,7 @@ class _GearListItem extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
+                              color: AppColors.textPrimaryFor(context),
                             ),
                           ),
                         ],
@@ -742,7 +740,7 @@ class _GearListItem extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 4),
-            Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
+            Icon(Icons.chevron_right_rounded, color: AppColors.textHintFor(context)),
           ],
         ),
       ),

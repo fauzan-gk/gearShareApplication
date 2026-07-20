@@ -23,16 +23,20 @@ class CustomBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.navy.withValues(alpha: 0.08),
-            blurRadius: 16,
-            offset: const Offset(0, -4),
-          ),
-        ],
+        color: AppColors.surfaceFor(context),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: AppColors.navy.withValues(alpha: 0.08),
+                  blurRadius: 16,
+                  offset: const Offset(0, -4),
+                ),
+              ],
       ),
       child: BottomNavigationBar(
         currentIndex: currentIndex,
@@ -40,8 +44,8 @@ class CustomBottomNav extends StatelessWidget {
         type: BottomNavigationBarType
             .fixed, // keeps all labels visible with 5 items
         selectedItemColor: AppColors.primary,
-        unselectedItemColor: AppColors.textHint,
-        backgroundColor: AppColors.surface,
+        unselectedItemColor: AppColors.textHintFor(context),
+        backgroundColor: AppColors.surfaceFor(context),
         elevation: 0,
         showUnselectedLabels: true,
         selectedLabelStyle: const TextStyle(

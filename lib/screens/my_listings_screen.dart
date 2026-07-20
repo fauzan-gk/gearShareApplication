@@ -79,7 +79,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
     return filtered;
   }
 
-  void _confirmDelete(BuildContext context, String itemId, String itemName) {
+  void _confirmDelete(String itemId, String itemName) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -100,7 +100,10 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
             const SizedBox(height: 8),
             Text(
               'This action cannot be undone.',
-              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondaryFor(context),
+              ),
             ),
           ],
         ),
@@ -117,6 +120,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
                     .collection('listings')
                     .doc(itemId)
                     .delete();
+                if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('"$itemName" deleted'),
@@ -124,6 +128,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
                   ),
                 );
               } catch (e) {
+                if (!mounted) return;
                 ScaffoldMessenger.of(
                   context,
                 ).showSnackBar(SnackBar(content: Text('Failed to delete: $e')));
@@ -142,7 +147,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.backgroundFor(context),
       appBar: CustomAppBar(
         title: 'My Listings',
         actions: [
@@ -217,11 +222,13 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: AppColors.surfaceFor(context),
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.navy.withValues(alpha: 0.08),
+                          color: AppColors.navyFor(
+                            context,
+                          ).withValues(alpha: 0.08),
                           blurRadius: 20,
                           offset: const Offset(0, 8),
                         ),
@@ -234,7 +241,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
                             icon: Icons.inventory_2_outlined,
                             value: '${allItems.length}',
                             label: 'Total',
-                            color: AppColors.navy,
+                            color: AppColors.textPrimaryFor(context),
                           ),
                         ),
                         _verticalDivider(),
@@ -265,33 +272,36 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                   child: Row(
                     children: [
-                      const Text(
+                      Text(
                         'Sort by:',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: AppColors.textSecondary,
+                          color: AppColors.textSecondaryFor(context),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 4),
                         decoration: BoxDecoration(
-                          color: AppColors.surface,
+                          color: AppColors.surfaceFor(context),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppColors.border, width: 1),
+                          border: Border.all(
+                            color: AppColors.borderFor(context),
+                            width: 1,
+                          ),
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
                             value: _sortBy,
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.arrow_drop_down_rounded,
-                              color: AppColors.textSecondary,
+                              color: AppColors.textSecondaryFor(context),
                             ),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
-                              color: AppColors.textPrimary,
+                              color: AppColors.textPrimaryFor(context),
                             ),
                             items: const [
                               DropdownMenuItem(
@@ -390,10 +400,12 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : AppColors.surface,
+          color: isSelected ? AppColors.primary : AppColors.surfaceFor(context),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.border,
+            color: isSelected
+                ? AppColors.primary
+                : AppColors.borderFor(context),
             width: 1,
           ),
           boxShadow: isSelected
@@ -418,7 +430,9 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: isSelected ? Colors.white : AppColors.textSecondary,
+                color: isSelected
+                    ? Colors.white
+                    : AppColors.textSecondaryFor(context),
               ),
             ),
           ],
@@ -438,7 +452,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
           crossAxisCount: 2,
           crossAxisSpacing: 14,
           mainAxisSpacing: 14,
-          childAspectRatio: 0.72,
+          childAspectRatio: 0.85,
         ),
         itemBuilder: (context, index) {
           final item = listings[index];
@@ -449,7 +463,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
               '/edit-item',
               arguments: {'itemId': item.id},
             ),
-            onDelete: () => _confirmDelete(context, item.id, item.name),
+            onDelete: () => _confirmDelete(item.id, item.name),
           );
         },
       ),
@@ -471,7 +485,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
             '/edit-item',
             arguments: {'itemId': item.id},
           ),
-          onDelete: () => _confirmDelete(context, item.id, item.name),
+          onDelete: () => _confirmDelete(item.id, item.name),
         );
       },
     );
@@ -503,10 +517,10 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
             _filterStatus == 'all'
                 ? 'No listings yet'
                 : 'No $_filterStatus items',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+              color: AppColors.textPrimaryFor(context),
             ),
           ),
           const SizedBox(height: 6),
@@ -514,7 +528,10 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
             _filterStatus == 'all'
                 ? 'Start by adding your first gear listing'
                 : 'Try changing the filter to see more items',
-            style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+            style: TextStyle(
+              fontSize: 14,
+              color: AppColors.textSecondaryFor(context),
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
@@ -541,7 +558,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
   }
 
   Widget _verticalDivider() =>
-      Container(height: 44, width: 1, color: AppColors.border);
+      Container(height: 44, width: 1, color: AppColors.borderFor(context));
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -578,7 +595,10 @@ class _StatItem extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           label,
-          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          style: TextStyle(
+            fontSize: 12,
+            color: AppColors.textSecondaryFor(context),
+          ),
         ),
       ],
     );
@@ -622,11 +642,11 @@ class _ListingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.surfaceFor(context),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.navy.withValues(alpha: 0.06),
+            color: AppColors.navyFor(context).withValues(alpha: 0.06),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -638,7 +658,7 @@ class _ListingCard extends StatelessWidget {
           Stack(
             children: [
               Container(
-                height: 100,
+                height: 160,
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.08),
@@ -689,10 +709,10 @@ class _ListingCard extends StatelessWidget {
               children: [
                 Text(
                   item.name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: AppColors.textPrimaryFor(context),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -709,17 +729,16 @@ class _ListingCard extends StatelessWidget {
               ],
             ),
           ),
-          const Spacer(),
           Padding(
-            padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
             child: Row(
               children: [
                 Expanded(
                   child: OutlinedButton(
                     onPressed: onEdit,
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.navy,
-                      side: const BorderSide(color: AppColors.border),
+                      foregroundColor: AppColors.textPrimaryFor(context),
+                      side: BorderSide(color: AppColors.borderFor(context)),
                       padding: const EdgeInsets.symmetric(vertical: 6),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -805,11 +824,11 @@ class _ListingListItem extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.surfaceFor(context),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: AppColors.navy.withValues(alpha: 0.04),
+            color: AppColors.navyFor(context).withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -840,10 +859,10 @@ class _ListingListItem extends StatelessWidget {
                     Expanded(
                       child: Text(
                         item.name,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
+                          color: AppColors.textPrimaryFor(context),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -878,7 +897,7 @@ class _ListingListItem extends StatelessWidget {
                   'Rs. ${item.pricePerDay.toInt()}/day • ${item.category}',
                   style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondaryFor(context),
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -887,14 +906,14 @@ class _ListingListItem extends StatelessWidget {
                     Icon(
                       Icons.calendar_today_rounded,
                       size: 12,
-                      color: AppColors.textSecondary,
+                      color: AppColors.textSecondaryFor(context),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       _formatDate(item.dateAdded),
                       style: TextStyle(
                         fontSize: 11,
-                        color: AppColors.textSecondary,
+                        color: AppColors.textSecondaryFor(context),
                       ),
                     ),
                   ],
@@ -906,10 +925,10 @@ class _ListingListItem extends StatelessWidget {
             children: [
               IconButton(
                 onPressed: onEdit,
-                icon: const Icon(
+                icon: Icon(
                   Icons.edit_outlined,
                   size: 18,
-                  color: AppColors.navy,
+                  color: AppColors.textPrimaryFor(context),
                 ),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),

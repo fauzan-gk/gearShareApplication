@@ -9,11 +9,11 @@ class AppDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.surfaceFor(context),
       child: Column(
         children: [
           DrawerHeader(
-            decoration: const BoxDecoration(color: AppColors.navy),
+            decoration: BoxDecoration(color: AppColors.navyFor(context)),
             child: Row(
               children: const [
                 CircleAvatar(
@@ -104,14 +104,14 @@ class AppDrawer extends StatelessWidget {
         icon,
         color: isLogout
             ? AppColors.error
-            : (isActive ? AppColors.primary : AppColors.textSecondary),
+            : (isActive ? AppColors.primary : AppColors.textSecondaryFor(context)),
       ),
       title: Text(
         label,
         style: TextStyle(
           color: isLogout
               ? AppColors.error
-              : (isActive ? AppColors.primary : AppColors.textPrimary),
+              : (isActive ? AppColors.primary : AppColors.textPrimaryFor(context)),
           fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
           fontSize: 14,
         ),

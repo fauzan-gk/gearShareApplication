@@ -84,10 +84,19 @@ class _RentalRequestScreenState extends State<RentalRequestScreen> {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
 
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
+      final renterName = userDoc.data()?['name'] as String? ?? 'Unknown';
+      final price = double.tryParse(widget.itemPrice) ?? 0;
+
       await FirebaseFirestore.instance.collection('rentalRequests').add({
         'itemName': widget.itemName,
         'itemPrice': widget.itemPrice,
         'renterId': uid,
+        'renterName': renterName,
+        'totalAmount': price * _totalDays,
         'startDate': Timestamp.fromDate(_startDate!),
         'endDate': Timestamp.fromDate(_endDate!),
         'totalDays': _totalDays,
@@ -97,6 +106,7 @@ class _RentalRequestScreenState extends State<RentalRequestScreen> {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Rental request sent for ${widget.itemName}'),
@@ -110,6 +120,7 @@ class _RentalRequestScreenState extends State<RentalRequestScreen> {
         Navigator.popUntil(context, (route) => route.settings.name == '/home');
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Failed to send request: $e')));

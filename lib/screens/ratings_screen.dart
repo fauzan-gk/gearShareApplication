@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../constants/app_colors.dart';
 import '../constants/custom_app_bar.dart';
 
-// ─────────────────────────────────────────────────────────────
-// DATA MODEL
-// One Review = one rating left by a renter after using your gear.
-// ─────────────────────────────────────────────────────────────
 class ReviewItem {
   final String reviewerName;
   final String itemRented;
-  final double rating; // out of 5
+  final double rating;
   final String comment;
   final String date;
 
@@ -22,162 +20,171 @@ class ReviewItem {
   });
 }
 
-// ─────────────────────────────────────────────────────────────
-// RATINGS SCREEN
-// StatelessWidget — this screen only DISPLAYS existing reviews,
-// nothing on it changes based on user interaction (no filters,
-// no editable fields). Phase 3: reviews come from a Firestore
-// subcollection under the user's document instead of dummy data.
-// ─────────────────────────────────────────────────────────────
-class RatingsScreen extends StatelessWidget {
+class RatingsScreen extends StatefulWidget {
   const RatingsScreen({super.key});
 
-  static const List<ReviewItem> _reviews = [
-    ReviewItem(
-      reviewerName: 'Ahmed Khan',
-      itemRented: 'Sony A7III Camera',
-      rating: 5.0,
-      comment: 'Camera was in perfect condition, owner was very responsive!',
-      date: '15 Jun 2026',
-    ),
-    ReviewItem(
-      reviewerName: 'Ali Hassan',
-      itemRented: 'JBL Speaker Set',
-      rating: 4.5,
-      comment: 'Great sound quality, minor scuff on the casing.',
-      date: '23 Jun 2026',
-    ),
-    ReviewItem(
-      reviewerName: 'Usman Tariq',
-      itemRented: 'Power Drill',
-      rating: 4.0,
-      comment: 'Worked well, pickup process could be faster.',
-      date: '28 Jun 2026',
-    ),
-    ReviewItem(
-      reviewerName: 'Hira Ahmad',
-      itemRented: 'Acoustic Guitar',
-      rating: 5.0,
-      comment: 'Beautiful guitar, exactly as described. Highly recommend!',
-      date: '2 Jul 2026',
-    ),
-  ];
+  @override
+  State<RatingsScreen> createState() => _RatingsScreenState();
+}
 
-  // Computes the average of all ratings — a simple example of using
-  // .fold() to sum a list, then dividing by its length.
+class _RatingsScreenState extends State<RatingsScreen> {
+  List<ReviewItem> _reviews = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReviews();
+  }
+
+  Future<void> _loadReviews() async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser!.uid;
+      final listingsSnapshot = await FirebaseFirestore.instance
+          .collection('listings')
+          .where('ownerId', isEqualTo: uid)
+          .get();
+
+      List<ReviewItem> allReviews = [];
+      for (var listing in listingsSnapshot.docs) {
+        final listingName =
+            listing['title'] ?? listing['name'] ?? 'Unknown Item';
+        final reviewsSnapshot = await FirebaseFirestore.instance
+            .collection('listings')
+            .doc(listing.id)
+            .collection('reviews')
+            .get();
+
+        for (var reviewDoc in reviewsSnapshot.docs) {
+          allReviews.add(ReviewItem(
+            reviewerName: reviewDoc['userName'] ?? 'Anonymous',
+            itemRented: listingName,
+            rating: (reviewDoc['rating'] ?? 5).toDouble(),
+            comment: reviewDoc['comment'] ?? '',
+            date: _formatDate(reviewDoc['timestamp']),
+          ));
+        }
+      }
+
+      setState(() {
+        _reviews = allReviews;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  String _formatDate(dynamic ts) {
+    if (ts == null) return 'Recently';
+    final date = (ts as Timestamp).toDate();
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+
   double get _averageRating {
     if (_reviews.isEmpty) return 0;
-    final total = _reviews.fold<double>(0, (sum, r) => sum + r.rating);
+    final total = _reviews.fold<double>(0, (s, r) => s + r.rating);
     return total / _reviews.length;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      // Shared AppBar gives us the automatic back arrow since this
-      // screen is reached via Navigator.pushNamed from Profile — no
-      // Drawer/BottomNav needed, same reasoning as EditProfileScreen.
       appBar: const CustomAppBar(title: 'Ratings & Reviews'),
-
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── AVERAGE RATING SUMMARY CARD ─────────────────
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.navy.withOpacity(0.08),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      _averageRating.toStringAsFixed(1),
-                      style: const TextStyle(
-                        fontSize: 40,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.navy,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    // Row of 5 star icons — filled up to the rounded
-                    // average, rest shown as outlined stars.
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(5, (index) {
-                        final filled = index < _averageRating.round();
-                        return Icon(
-                          filled
-                              ? Icons.star_rounded
-                              : Icons.star_outline_rounded,
-                          color: AppColors.primary,
-                          size: 22,
-                        );
-                      }),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Based on ${_reviews.length} reviews',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // ── SECTION LABEL ────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-              child: Text(
-                'All Reviews',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ),
-
-            // ── REVIEW LIST ──────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
               child: Column(
-                children: _reviews
-                    .map(
-                      (review) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _ReviewCard(review: review),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceFor(context),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.navyFor(context)
+                                .withValues(alpha: 0.08),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
                       ),
-                    )
-                    .toList(),
+                      child: Column(
+                        children: [
+                          Text(
+                            _averageRating.toStringAsFixed(1),
+                            style: TextStyle(
+                              fontSize: 40,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.navyFor(context),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(5, (index) {
+                              final filled = index < _averageRating.round();
+                              return Icon(
+                                filled
+                                    ? Icons.star_rounded
+                                    : Icons.star_outline_rounded,
+                                color: AppColors.primary,
+                                size: 22,
+                              );
+                            }),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Based on ${_reviews.length} reviews',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textSecondaryFor(context),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                    child: Text(
+                      'All Reviews',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimaryFor(context),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                    child: Column(
+                      children: _reviews
+                          .map(
+                            (review) => Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _ReviewCard(review: review),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-      ),
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// REVIEW CARD WIDGET
-// One card per review — reviewer name, star rating, comment, date.
-// ─────────────────────────────────────────────────────────────
 class _ReviewCard extends StatelessWidget {
   final ReviewItem review;
 
@@ -188,11 +195,11 @@ class _ReviewCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.surfaceFor(context),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.navy.withOpacity(0.06),
+            color: AppColors.navyFor(context).withValues(alpha: 0.06),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -204,17 +211,16 @@ class _ReviewCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // CircleAvatar with initials — avoids needing a real image
-              // until Firebase Storage is wired up in Phase 3.
               Row(
                 children: [
                   CircleAvatar(
                     radius: 18,
-                    backgroundColor: AppColors.navy.withOpacity(0.1),
+                    backgroundColor:
+                        AppColors.navyFor(context).withValues(alpha: 0.1),
                     child: Text(
-                      review.reviewerName[0], // first letter of name
-                      style: const TextStyle(
-                        color: AppColors.navy,
+                      review.reviewerName[0],
+                      style: TextStyle(
+                        color: AppColors.navyFor(context),
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -225,17 +231,17 @@ class _ReviewCard extends StatelessWidget {
                     children: [
                       Text(
                         review.reviewerName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 14,
-                          color: AppColors.textPrimary,
+                          color: AppColors.textPrimaryFor(context),
                         ),
                       ),
                       Text(
                         'Rented: ${review.itemRented}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
-                          color: AppColors.textSecondary,
+                          color: AppColors.textSecondaryFor(context),
                         ),
                       ),
                     ],
@@ -244,13 +250,12 @@ class _ReviewCard extends StatelessWidget {
               ),
               Text(
                 review.date,
-                style: const TextStyle(fontSize: 11, color: AppColors.textHint),
+                style: TextStyle(
+                    fontSize: 11, color: AppColors.textHintFor(context)),
               ),
             ],
           ),
           const SizedBox(height: 10),
-
-          // Star rating row for THIS specific review
           Row(
             children: List.generate(5, (index) {
               final filled = index < review.rating.round();
@@ -262,12 +267,11 @@ class _ReviewCard extends StatelessWidget {
             }),
           ),
           const SizedBox(height: 8),
-
           Text(
             review.comment,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: AppColors.textSecondary,
+              color: AppColors.textSecondaryFor(context),
               height: 1.4,
             ),
           ),

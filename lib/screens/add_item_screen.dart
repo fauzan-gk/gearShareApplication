@@ -87,6 +87,12 @@ class _AddItemScreenState extends State<AddItemScreen> {
         final uid = FirebaseAuth.instance.currentUser?.uid;
         if (uid == null) return;
 
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .get();
+        final ownerName = userDoc.data()?['name'] as String? ?? 'Unknown';
+
         await FirebaseFirestore.instance.collection('listings').add({
           'name': _nameController.text.trim(),
           'category': _selectedCategory,
@@ -97,9 +103,11 @@ class _AddItemScreenState extends State<AddItemScreen> {
           'isAvailable': _isAvailable,
           'isFeatured': _isFeatured,
           'ownerId': uid,
+          'ownerName': ownerName,
           'createdAt': FieldValue.serverTimestamp(),
         });
 
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
@@ -129,6 +137,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
           _condition = 'Good';
         });
       } catch (e) {
+        if (!mounted) return;
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Failed to publish: $e')));
@@ -159,11 +168,11 @@ class _AddItemScreenState extends State<AddItemScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
+                  color: AppColors.surfaceFor(context),
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.navy.withValues(alpha: 0.06),
+                      color: AppColors.navyFor(context).withValues(alpha: 0.06),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -193,10 +202,10 @@ class _AddItemScreenState extends State<AddItemScreen> {
                       _nameController.text.isEmpty
                           ? 'Item Name'
                           : _nameController.text,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: AppColors.textPrimaryFor(context),
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -206,7 +215,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                           _selectedCategory ?? 'Category',
                           style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.textSecondary,
+                            color: AppColors.textSecondaryFor(context),
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -251,7 +260,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                         _descriptionController.text,
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.textSecondary,
+                          color: AppColors.textSecondaryFor(context),
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -263,7 +272,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
               const SizedBox(height: 12),
               Text(
                 'This is how your listing will appear to renters',
-                style: TextStyle(fontSize: 11, color: AppColors.textHint),
+                style: TextStyle(fontSize: 11, color: AppColors.textHintFor(context)),
               ),
             ],
           ),
@@ -281,8 +290,6 @@ class _AddItemScreenState extends State<AddItemScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-
       // Shared components — same AppBar/Drawer/BottomNav used everywhere.
       appBar: CustomAppBar(
         title: 'Add Listing',
@@ -365,10 +372,10 @@ class _AddItemScreenState extends State<AddItemScreen> {
                               ),
                             ),
                             const SizedBox(height: 12),
-                            const Text(
+                            Text(
                               'Tap to add photos',
                               style: TextStyle(
-                                color: AppColors.textPrimary,
+                                color: AppColors.textPrimaryFor(context),
                                 fontWeight: FontWeight.w600,
                                 fontSize: 15,
                               ),
@@ -377,7 +384,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                             Text(
                               'PNG, JPG or WEBP • Max 5MB each',
                               style: TextStyle(
-                                color: AppColors.textHint,
+                                color: AppColors.textHintFor(context),
                                 fontSize: 12,
                               ),
                             ),
@@ -443,7 +450,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                         children: [
                           Icon(
                             Icons.category_outlined,
-                            color: AppColors.textSecondary,
+                            color: AppColors.textSecondaryFor(context),
                             size: 20,
                           ),
                           const SizedBox(width: 8),
@@ -531,9 +538,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
                             'Description (optional)',
                             Icons.notes_outlined,
                           ).copyWith(
-                            counterStyle: const TextStyle(
+                            counterStyle: TextStyle(
                               fontSize: 11,
-                              color: AppColors.textHint,
+                              color: AppColors.textHintFor(context),
                             ),
                           ),
                     ),
@@ -572,9 +579,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
                               ),
                             ),
                             prefixText: 'Rs. ',
-                            prefixStyle: const TextStyle(
+                            prefixStyle: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
+                              color: AppColors.textPrimaryFor(context),
                               fontSize: 16,
                             ),
                           ),
@@ -740,7 +747,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                   const SizedBox(height: 8),
                   Text(
                     'By publishing, you agree to our Terms & Conditions',
-                    style: TextStyle(fontSize: 11, color: AppColors.textHint),
+                style: TextStyle(fontSize: 11, color: AppColors.textHintFor(context)),
                   ),
                 ],
               ),
@@ -774,7 +781,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                       width: 28,
                       height: 28,
                       decoration: BoxDecoration(
-                        color: isActive ? AppColors.primary : AppColors.border,
+                        color: isActive ? AppColors.primary : AppColors.borderFor(context),
                         shape: BoxShape.circle,
                       ),
                       child: Center(
@@ -783,7 +790,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                           style: TextStyle(
                             color: isActive
                                 ? Colors.white
-                                : AppColors.textSecondary,
+                                : AppColors.textSecondaryFor(context),
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                           ),
@@ -797,7 +804,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                         fontSize: 10,
                         color: isActive
                             ? AppColors.primary
-                            : AppColors.textHint,
+                            : AppColors.textHintFor(context),
                         fontWeight: isActive
                             ? FontWeight.w600
                             : FontWeight.w400,
@@ -809,7 +816,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                   Expanded(
                     child: Container(
                       height: 2,
-                      color: isActive ? AppColors.primary : AppColors.border,
+                      color: isActive ? AppColors.primary : AppColors.borderFor(context),
                     ),
                   ),
               ],
@@ -829,19 +836,19 @@ class _AddItemScreenState extends State<AddItemScreen> {
       decoration: BoxDecoration(
         color: isAddMore
             ? AppColors.primary.withValues(alpha: 0.1)
-            : AppColors.border.withValues(alpha: 0.3),
+            : AppColors.borderFor(context).withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
           color: isAddMore
               ? AppColors.primary.withValues(alpha: 0.3)
-              : AppColors.border,
+              : AppColors.borderFor(context),
           width: 1,
         ),
       ),
       child: Icon(
         isAddMore ? Icons.add_rounded : Icons.image_outlined,
         size: isAddMore ? 16 : 14,
-        color: isAddMore ? AppColors.primary : AppColors.textSecondary,
+        color: isAddMore ? AppColors.primary : AppColors.textSecondaryFor(context),
       ),
     );
   }
@@ -863,12 +870,12 @@ class _AddItemScreenState extends State<AddItemScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '📋 Listing Summary',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+              color: AppColors.textPrimaryFor(context),
             ),
           ),
           const SizedBox(height: 8),
@@ -905,7 +912,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                 _locationController.text.isEmpty
                     ? 'No location'
                     : _locationController.text,
-                AppColors.navy,
+                AppColors.navyFor(context),
               ),
             ],
           ),
@@ -925,7 +932,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
               label,
               style: TextStyle(
                 fontSize: 11,
-                color: AppColors.textSecondary,
+                color: AppColors.textSecondaryFor(context),
                 fontWeight: FontWeight.w500,
               ),
               overflow: TextOverflow.ellipsis,
@@ -940,15 +947,15 @@ class _AddItemScreenState extends State<AddItemScreen> {
   InputDecoration _buildInputDecoration(String label, IconData icon) {
     return InputDecoration(
       labelText: label.isNotEmpty ? label : null,
-      labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+      labelStyle: TextStyle(color: AppColors.textSecondaryFor(context), fontSize: 14),
       prefixIcon: icon != Icons.attach_money_outlined
-          ? Icon(icon, color: AppColors.textSecondary, size: 20)
+          ? Icon(icon, color: AppColors.textSecondaryFor(context), size: 20)
           : null,
       filled: true,
-      fillColor: AppColors.background,
+      fillColor: AppColors.backgroundFor(context),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       enabledBorder: OutlineInputBorder(
-        borderSide: const BorderSide(color: AppColors.border),
+        borderSide: BorderSide(color: AppColors.borderFor(context)),
         borderRadius: BorderRadius.circular(12),
       ),
       focusedBorder: OutlineInputBorder(
@@ -988,15 +995,17 @@ class _SectionCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.surfaceFor(context),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.navy.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: Theme.of(context).brightness == Brightness.dark
+            ? null
+            : [
+                BoxShadow(
+                  color: AppColors.navyFor(context).withValues(alpha: 0.06),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1006,17 +1015,17 @@ class _SectionCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                    color: AppColors.textPrimaryFor(context),
                   ),
                 ),
               ),
               if (subtitle != null)
                 Text(
                   subtitle!,
-                  style: TextStyle(fontSize: 11, color: AppColors.textHint),
+                  style: TextStyle(fontSize: 11, color: AppColors.textHintFor(context)),
                 ),
             ],
           ),

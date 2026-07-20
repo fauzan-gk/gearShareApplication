@@ -28,7 +28,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: CustomAppBar(
         title: 'GearShare',
         actions: [
@@ -57,11 +56,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     vertical: 14,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
+                    color: AppColors.surfaceFor(context),
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.navy.withValues(alpha: 0.08),
+                        color: AppColors.navyFor(context).withValues(alpha: 0.08),
                         blurRadius: 20,
                         offset: const Offset(0, 8),
                       ),
@@ -69,12 +68,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.search, color: AppColors.textSecondary),
+                      Icon(Icons.search, color: AppColors.textSecondaryFor(context)),
                       const SizedBox(width: 10),
                       Text(
                         'Search equipment...',
                         style: TextStyle(
-                          color: AppColors.textHint,
+                          color: AppColors.textHintFor(context),
                           fontSize: 14,
                         ),
                       ),
@@ -90,8 +89,8 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Container(
                 height: 140,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppColors.primary, AppColors.navy],
+                  gradient: LinearGradient(
+                    colors: [AppColors.primary, AppColors.navyFor(context)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -200,12 +199,12 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Categories',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                      color: AppColors.textPrimaryFor(context),
                     ),
                   ),
                   GestureDetector(
@@ -264,7 +263,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
-                              color: AppColors.textSecondary,
+                              color: AppColors.textSecondaryFor(context),
                             ),
                           ),
                         ],
@@ -283,12 +282,12 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     '⭐ Featured Items',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                      color: AppColors.textPrimaryFor(context),
                     ),
                   ),
                   GestureDetector(
@@ -355,8 +354,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             context,
                             '/item-detail',
                             arguments: {
-                              'itemName': name.toString(),
-                              'itemPrice': price.toString(),
+                              'listingId': docs[index].id,
                             },
                           ),
                         ),
@@ -375,12 +373,12 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     '🔄 Recently Added',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                      color: AppColors.textPrimaryFor(context),
                     ),
                   ),
                   GestureDetector(
@@ -448,8 +446,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         context,
                         '/item-detail',
                         arguments: {
-                          'itemName': name.toString(),
-                          'itemPrice': price.toString(),
+                          'listingId': docs[index].id,
                         },
                       ),
                     );
@@ -487,11 +484,11 @@ class _FeaturedItemCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: AppColors.surfaceFor(context),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: AppColors.navy.withValues(alpha: 0.06),
+              color: AppColors.navyFor(context).withValues(alpha: 0.06),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -573,7 +570,7 @@ class _FeaturedItemCard extends StatelessWidget {
                     'by $owner',
                     style: TextStyle(
                       fontSize: 11,
-                      color: AppColors.textSecondary,
+                      color: AppColors.textSecondaryFor(context),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -620,11 +617,11 @@ class _RecentItemCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: AppColors.surfaceFor(context),
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: AppColors.navy.withValues(alpha: 0.04),
+              color: AppColors.navyFor(context).withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -664,7 +661,7 @@ class _RecentItemCard extends StatelessWidget {
                     'by $owner',
                     style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.textSecondary,
+                      color: AppColors.textSecondaryFor(context),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -691,7 +688,7 @@ class _RecentItemCard extends StatelessWidget {
                             rating.toString(),
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppColors.textSecondary,
+                              color: AppColors.textSecondaryFor(context),
                             ),
                           ),
                         ],
@@ -701,7 +698,7 @@ class _RecentItemCard extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
+            Icon(Icons.chevron_right_rounded, color: AppColors.textHintFor(context)),
           ],
         ),
       ),

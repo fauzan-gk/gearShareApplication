@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ItemDetailScreen extends StatefulWidget {
-  final String itemName;
-  final String itemPrice;
+  final String listingId;
 
   const ItemDetailScreen({
     super.key,
-    required this.itemName,
-    required this.itemPrice,
+    required this.listingId,
   });
 
   @override
@@ -19,34 +19,23 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
   late TabController _tabController;
   final TextEditingController _reviewController = TextEditingController();
   int _userRating = 0;
-  final List<Map<String, dynamic>> _reviews = [
-    {
-      'name': 'John D.',
-      'rating': 5,
-      'date': '2 weeks ago',
-      'comment':
-          'Amazing gear! Worked perfectly for my photography shoot. Highly recommend!',
-    },
-    {
-      'name': 'Sarah M.',
-      'rating': 4,
-      'date': '1 month ago',
-      'comment':
-          'Good quality equipment, would rent again. Owner was very responsive.',
-    },
-    {
-      'name': 'Ahmed R.',
-      'rating': 5,
-      'date': '3 weeks ago',
-      'comment':
-          'Excellent condition, just as described. Will definitely rent again!',
-    },
-  ];
+
+  String _itemName = '';
+  String _itemPrice = '';
+  String _itemDescription = '';
+  String _itemCategory = '';
+  String _itemImage = '';
+  String _itemLocation = '';
+  String _ownerName = '';
+  bool _isLoading = true;
+  List<Map<String, dynamic>> _reviews = [];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _loadItem();
+    _loadReviews();
   }
 
   @override
@@ -56,7 +45,64 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
     super.dispose();
   }
 
-  void _addReview() {
+  Future<void> _loadItem() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('listings')
+          .doc(widget.listingId)
+          .get();
+      if (doc.exists) {
+        final data = doc.data()!;
+        setState(() {
+          _itemName = data['title'] ?? data['name'] ?? 'Unknown Item';
+          _itemPrice = data['price'].toString();
+          _itemDescription = data['description'] ?? '';
+          _itemCategory = data['category'] ?? '';
+          _itemImage = data['imageUrl'] ?? data['image'] ?? '';
+          _itemLocation = data['location'] ?? 'Unknown';
+          _ownerName = data['ownerName'] ?? 'Unknown';
+          _isLoading = false;
+        });
+      } else {
+        setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _loadReviews() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('listings')
+          .doc(widget.listingId)
+          .collection('reviews')
+          .orderBy('timestamp', descending: true)
+          .get();
+      setState(() {
+        _reviews = snapshot.docs.map((doc) => {
+              'name': doc['userName'] ?? 'Anonymous',
+              'rating': doc['rating'] ?? 5,
+              'date': _formatTimestamp(doc['timestamp']),
+              'comment': doc['comment'] ?? '',
+            }).toList();
+      });
+    } catch (e) {
+      // Reviews are optional; silently fail
+    }
+  }
+
+  String _formatTimestamp(dynamic ts) {
+    if (ts == null) return 'Recently';
+    final date = (ts as Timestamp).toDate();
+    final diff = DateTime.now().difference(date);
+    if (diff.inDays == 0) return 'Today';
+    if (diff.inDays == 1) return '1 day ago';
+    if (diff.inDays < 30) return '${diff.inDays} days ago';
+    return '${(diff.inDays / 30).floor()} months ago';
+  }
+
+  Future<void> _addReview() async {
     if (_reviewController.text.trim().isEmpty || _userRating == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -67,29 +113,46 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
       return;
     }
 
-    setState(() {
-      _reviews.insert(0, {
-        'name': 'You',
+    try {
+      await FirebaseFirestore.instance
+          .collection('listings')
+          .doc(widget.listingId)
+          .collection('reviews')
+          .add({
+        'userId': FirebaseAuth.instance.currentUser!.uid,
+        'userName':
+            FirebaseAuth.instance.currentUser!.displayName ?? 'Anonymous',
         'rating': _userRating,
-        'date': 'Just now',
         'comment': _reviewController.text.trim(),
+        'timestamp': FieldValue.serverTimestamp(),
       });
-      _reviewController.clear();
-      _userRating = 0;
-    });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Review added successfully!'),
-        backgroundColor: Color(0xFF1B2A4A),
-      ),
-    );
+      _reviewController.clear();
+      setState(() => _userRating = 0);
+      await _loadReviews();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Review added successfully!'),
+            backgroundColor: Color(0xFF1B2A4A),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to add review. Please try again.'),
+            backgroundColor: Color(0xFF1B2A4A),
+          ),
+        );
+      }
+    }
   }
 
   String _formatPrice(String price) {
-    // Remove any existing 'Rs.' prefix and clean the price
     String cleanPrice = price.replaceAll('Rs.', '').trim();
-    // If price already has a /day suffix, keep it
     if (cleanPrice.contains('/day')) {
       return 'Rs. $cleanPrice';
     }
@@ -98,11 +161,21 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: CircularProgressIndicator(
+            color: const Color(0xFFF4820A),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: CustomScrollView(
         slivers: [
-          // ── COLLAPSIBLE IMAGE HEADER ──────────────────────
           SliverAppBar(
             expandedHeight: 280,
             pinned: true,
@@ -120,23 +193,14 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    // Main image placeholder
-                    Center(
-                      child: Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.image_outlined,
-                          size: 60,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    // Bottom gradient overlay for better text visibility
+                    _itemImage.isNotEmpty
+                        ? Image.network(
+                            _itemImage,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                _buildImagePlaceholder(),
+                          )
+                        : _buildImagePlaceholder(),
                     Positioned(
                       bottom: 0,
                       left: 0,
@@ -159,23 +223,20 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                 ),
               ),
             ),
-            // No actions - empty app bar
             actions: const [],
           ),
 
-          // ── CONTENT ────────────────────────────────────────
           SliverPadding(
             padding: const EdgeInsets.all(20.0),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                // ── NAME & PRICE ────────────────────────────
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
                       child: Text(
-                        widget.itemName,
+                        _itemName,
                         style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -195,7 +256,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        _formatPrice(widget.itemPrice),
+                        _formatPrice(_itemPrice),
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -208,40 +269,40 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
 
                 const SizedBox(height: 10),
 
-                // ── CATEGORY & AVAILABILITY BADGES ──────────
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.category_outlined,
-                            size: 16,
-                            color: Color(0xFF1B2A4A),
-                          ),
-                          SizedBox(width: 4),
-                          Text(
-                            'Camera',
-                            style: TextStyle(
-                              fontSize: 12,
+                    if (_itemCategory.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.category_outlined,
+                              size: 16,
                               color: Color(0xFF1B2A4A),
-                              fontWeight: FontWeight.w500,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 4),
+                            Text(
+                              _itemCategory,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF1B2A4A),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
@@ -280,18 +341,18 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                         color: Colors.blue.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.location_on_outlined,
                             size: 16,
                             color: Colors.blue,
                           ),
-                          SizedBox(width: 4),
+                          const SizedBox(width: 4),
                           Text(
-                            'Abbottabad',
-                            style: TextStyle(
+                            _itemLocation,
+                            style: const TextStyle(
                               fontSize: 12,
                               color: Colors.blue,
                               fontWeight: FontWeight.w500,
@@ -305,7 +366,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
 
                 const SizedBox(height: 16),
 
-                // ── RATING ──────────────────────────────────
                 Container(
                   padding: const EdgeInsets.symmetric(
                     vertical: 12,
@@ -336,7 +396,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '(32 reviews)',
+                        '(${_reviews.length} reviews)',
                         style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                       ),
                       const Spacer(),
@@ -377,7 +437,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
 
                 const SizedBox(height: 16),
 
-                // ── OWNER CARD ──────────────────────────────
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -393,10 +452,12 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                           color: const Color(0xFF1B2A4A),
                           shape: BoxShape.circle,
                         ),
-                        child: const Center(
+                        child: Center(
                           child: Text(
-                            'AK',
-                            style: TextStyle(
+                            _ownerName.isNotEmpty
+                                ? _ownerName[0].toUpperCase()
+                                : '?',
+                            style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
@@ -409,9 +470,9 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Ahmed Khan',
-                              style: TextStyle(
+                            Text(
+                              _ownerName,
+                              style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 16,
                                 color: Color(0xFF1B2A4A),
@@ -462,7 +523,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
 
                 const SizedBox(height: 24),
 
-                // ── TAB BAR ──────────────────────────────────
                 Container(
                   decoration: BoxDecoration(
                     border: Border(
@@ -492,18 +552,15 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
 
                 const SizedBox(height: 16),
 
-                // ── TAB CONTENT ──────────────────────────────
                 SizedBox(
                   height: 400,
                   child: TabBarView(
                     controller: _tabController,
                     children: [
-                      // ── DESCRIPTION TAB ──────────────────────
                       SingleChildScrollView(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Main description
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
@@ -514,10 +571,10 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                                   width: 1,
                                 ),
                               ),
-                              child: const Column(
+                              child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
+                                  const Text(
                                     '📝 Description',
                                     style: TextStyle(
                                       fontSize: 14,
@@ -525,12 +582,12 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                                       color: Color(0xFF1B2A4A),
                                     ),
                                   ),
-                                  SizedBox(height: 8),
+                                  const SizedBox(height: 8),
                                   Text(
-                                    'High quality equipment, well maintained and ready to use. '
-                                    'Comes with all original accessories. Pickup available '
-                                    'or delivery within the city for an extra fee.',
-                                    style: TextStyle(
+                                    _itemDescription.isNotEmpty
+                                        ? _itemDescription
+                                        : 'No description provided.',
+                                    style: const TextStyle(
                                       color: Colors.black87,
                                       height: 1.6,
                                       fontSize: 14,
@@ -542,7 +599,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
 
                             const SizedBox(height: 16),
 
-                            // What's included
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
@@ -600,7 +656,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
 
                             const SizedBox(height: 16),
 
-                            // Terms
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
@@ -640,38 +695,46 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                         ),
                       ),
 
-                      // ── REVIEWS TAB ──────────────────────────
                       Column(
                         children: [
-                          // Reviews list
                           Expanded(
-                            child: ListView.builder(
-                              padding: EdgeInsets.zero,
-                              itemCount: _reviews.length,
-                              itemBuilder: (context, index) {
-                                final review = _reviews[index];
-                                return Column(
-                                  children: [
-                                    _ReviewTile(
-                                      name: review['name'],
-                                      rating: review['rating'],
-                                      date: review['date'],
-                                      comment: review['comment'],
-                                    ),
-                                    if (index < _reviews.length - 1)
-                                      Divider(
-                                        color: Colors.grey[200],
-                                        height: 24,
+                            child: _reviews.isEmpty
+                                ? Center(
+                                    child: Text(
+                                      'No reviews yet',
+                                      style: TextStyle(
+                                        color: Colors.grey[500],
+                                        fontSize: 14,
                                       ),
-                                  ],
-                                );
-                              },
-                            ),
+                                    ),
+                                  )
+                                : ListView.builder(
+                                    padding: EdgeInsets.zero,
+                                    itemCount: _reviews.length,
+                                    itemBuilder: (context, index) {
+                                      final review = _reviews[index];
+                                      return Column(
+                                        children: [
+                                          _ReviewTile(
+                                            name: review['name'],
+                                            rating: review['rating'],
+                                            date: review['date'],
+                                            comment: review['comment'],
+                                          ),
+                                          if (index < _reviews.length - 1)
+                                            Divider(
+                                              color: Colors.grey[200],
+                                              height: 24,
+                                            ),
+                                        ],
+                                      );
+                                    },
+                                  ),
                           ),
 
-                          // ── ADD REVIEW SECTION ──────────────────
                           Container(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 16),
                             decoration: BoxDecoration(
                               color: Colors.grey[50],
                               borderRadius: BorderRadius.circular(12),
@@ -684,7 +747,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Padding(
-                                  padding: EdgeInsets.symmetric(horizontal: 16),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 16),
                                   child: Text(
                                     '💬 Add Your Review',
                                     style: TextStyle(
@@ -695,7 +759,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                                   ),
                                 ),
                                 const SizedBox(height: 8),
-                                // Rating stars
                                 Padding(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 16,
@@ -749,7 +812,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                                   ),
                                 ),
                                 const SizedBox(height: 8),
-                                // Review input
                                 Padding(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 16,
@@ -760,16 +822,17 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                                         child: TextField(
                                           controller: _reviewController,
                                           decoration: InputDecoration(
-                                            hintText: 'Write your review...',
+                                            hintText:
+                                                'Write your review...',
                                             hintStyle: TextStyle(
                                               color: Colors.grey[400],
                                               fontSize: 13,
                                             ),
                                             contentPadding:
                                                 const EdgeInsets.symmetric(
-                                                  horizontal: 14,
-                                                  vertical: 10,
-                                                ),
+                                              horizontal: 14,
+                                              vertical: 10,
+                                            ),
                                             filled: true,
                                             fillColor: Colors.white,
                                             border: OutlineInputBorder(
@@ -779,14 +842,16 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                                                 color: Colors.grey[300]!,
                                               ),
                                             ),
-                                            enabledBorder: OutlineInputBorder(
+                                            enabledBorder:
+                                                OutlineInputBorder(
                                               borderRadius:
                                                   BorderRadius.circular(10),
                                               borderSide: BorderSide(
                                                 color: Colors.grey[300]!,
                                               ),
                                             ),
-                                            focusedBorder: OutlineInputBorder(
+                                            focusedBorder:
+                                                OutlineInputBorder(
                                               borderRadius:
                                                   BorderRadius.circular(10),
                                               borderSide: const BorderSide(
@@ -801,9 +866,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                                       Container(
                                         decoration: BoxDecoration(
                                           color: const Color(0xFFF4820A),
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(10),
                                         ),
                                         child: IconButton(
                                           onPressed: _addReview,
@@ -838,7 +902,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
         ],
       ),
 
-      // ── BOTTOM BAR ─────────────────────────────────────────
       bottomNavigationBar: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
@@ -854,7 +917,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
         child: SafeArea(
           child: Row(
             children: [
-              // Price display
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,
@@ -873,7 +935,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                       style: TextStyle(fontSize: 10, color: Colors.grey),
                     ),
                     Text(
-                      _formatPrice(widget.itemPrice),
+                      _formatPrice(_itemPrice),
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
@@ -884,7 +946,6 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                 ),
               ),
               const SizedBox(width: 12),
-              // Request button
               Expanded(
                 child: SizedBox(
                   height: 50,
@@ -894,8 +955,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                         context,
                         '/rental-request',
                         arguments: {
-                          'itemName': widget.itemName,
-                          'itemPrice': widget.itemPrice,
+                          'itemName': _itemName,
+                          'itemPrice': _itemPrice,
                         },
                       );
                     },
@@ -934,9 +995,26 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
       ),
     );
   }
+
+  Widget _buildImagePlaceholder() {
+    return Center(
+      child: Container(
+        width: 120,
+        height: 120,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.1),
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(
+          Icons.image_outlined,
+          size: 60,
+          color: Colors.white,
+        ),
+      ),
+    );
+  }
 }
 
-// ── Included Item Widget ───────────────────────────────────────
 class _IncludedItem extends StatelessWidget {
   final IconData icon;
   final String text;
@@ -961,7 +1039,6 @@ class _IncludedItem extends StatelessWidget {
   }
 }
 
-// ── Review Tile ───────────────────────────────────────────────
 class _ReviewTile extends StatelessWidget {
   final String name;
   final int rating;

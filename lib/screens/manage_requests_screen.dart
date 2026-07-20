@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
-import '../constants/app_colors.dart';
 import '../constants/custom_app_bar.dart';
-import '../constants/app_drawer.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../constants/custom_app_bar.dart';
 
 class ManageRequestsScreen extends StatefulWidget {
   const ManageRequestsScreen({super.key});
@@ -72,6 +68,27 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen>
           .doc(docId)
           .update({'status': isApprove ? 'approved' : 'rejected'});
 
+      if (isApprove) {
+        final requestDoc = await FirebaseFirestore.instance
+            .collection('rentalRequests')
+            .doc(docId)
+            .get();
+        final data = requestDoc.data() as Map<String, dynamic>;
+        await FirebaseFirestore.instance.collection('rentals').add({
+          'itemName': data['itemName'] ?? 'Unknown Item',
+          'itemPrice': data['itemPrice'] ?? '',
+          'renterId': data['renterId'] ?? '',
+          'renterName': data['renterName'] ?? 'Unknown',
+          'startDate': data['startDate'],
+          'endDate': data['endDate'],
+          'totalDays': data['totalDays'] ?? 0,
+          'totalAmount': data['totalAmount'] ?? 0,
+          'isCompleted': false,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(isApprove ? 'Request approved' : 'Request rejected'),
@@ -79,6 +96,7 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen>
         ),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Failed: $e')));
@@ -98,8 +116,6 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: CustomAppBar(
@@ -312,7 +328,7 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen>
                     ),
                     child: ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: _statusColor(status).withOpacity(0.15),
+                        backgroundColor: _statusColor(status).withValues(alpha: 0.15),
                         child: Icon(
                           status == 'approved' ? Icons.check : Icons.close,
                           color: _statusColor(status),
@@ -331,7 +347,7 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen>
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: _statusColor(status).withOpacity(0.15),
+                          color: _statusColor(status).withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(

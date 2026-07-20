@@ -33,6 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
+        if (!mounted) return;
         Navigator.pushReplacementNamed(context, '/home');
       } on FirebaseAuthException catch (e) {
         String message = 'Login failed';
@@ -43,6 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
         } else if (e.code == 'invalid-credential') {
           message = 'Invalid email or password';
         }
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(message),

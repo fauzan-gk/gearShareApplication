@@ -25,6 +25,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           email: _emailController.text.trim(),
         );
 
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -44,6 +45,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         if (e.code == 'user-not-found') {
           message = 'No account found with this email';
         }
+        if (!mounted) return;
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(message)));

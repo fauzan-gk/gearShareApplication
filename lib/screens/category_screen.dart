@@ -1,5 +1,6 @@
 //
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../constants/app_colors.dart';
 import '../constants/custom_app_bar.dart';
 import '../constants/app_drawer.dart';
@@ -35,69 +36,61 @@ class CategoryScreen extends StatefulWidget {
 class _CategoryScreenState extends State<CategoryScreen> {
   String _searchQuery = '';
   String _selectedView = 'grid'; // 'grid' or 'list'
+  List<CategoryModel> _categories = [];
+  bool _isLoading = true;
 
-  static const List<CategoryModel> _categories = [
-    CategoryModel(
-      name: 'Cameras',
-      icon: Icons.camera_alt_outlined,
-      itemCount: 24,
-      color: Color(0xFF4A90D9),
-    ),
-    CategoryModel(
-      name: 'Power Tools',
-      icon: Icons.construction_outlined,
-      itemCount: 18,
-      color: Color(0xFFE67E22),
-    ),
-    CategoryModel(
-      name: 'Audio Gear',
-      icon: Icons.speaker_outlined,
-      itemCount: 12,
-      color: Color(0xFF9B59B6),
-    ),
-    CategoryModel(
-      name: 'Camping',
-      icon: Icons.cabin_outlined,
-      itemCount: 31,
-      color: Color(0xFF27AE60),
-    ),
-    CategoryModel(
-      name: 'Sports',
-      icon: Icons.sports_soccer_outlined,
-      itemCount: 27,
-      color: Color(0xFFE74C3C),
-    ),
-    CategoryModel(
-      name: 'Instruments',
-      icon: Icons.music_note_outlined,
-      itemCount: 9,
-      color: Color(0xFFF39C12),
-    ),
-    CategoryModel(
-      name: 'Video & AV',
-      icon: Icons.videocam_outlined,
-      itemCount: 15,
-      color: Color(0xFF1ABC9C),
-    ),
-    CategoryModel(
-      name: 'Electronics',
-      icon: Icons.devices_outlined,
-      itemCount: 20,
-      color: Color(0xFF3498DB),
-    ),
-    CategoryModel(
-      name: 'Gaming',
-      icon: Icons.games_outlined,
-      itemCount: 14,
-      color: Color(0xFFE91E63),
-    ),
-    CategoryModel(
-      name: 'Fitness',
-      icon: Icons.fitness_center_outlined,
-      itemCount: 22,
-      color: Color(0xFF00BCD4),
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      final snapshot =
+          await FirebaseFirestore.instance.collection('listings').get();
+      final Map<String, int> categoryCounts = {};
+      final Set<String> categoryNames = {};
+      for (var doc in snapshot.docs) {
+        final cat = doc['category'] as String?;
+        if (cat != null) {
+          categoryNames.add(cat);
+          categoryCounts[cat] = (categoryCounts[cat] ?? 0) + 1;
+        }
+      }
+      final Map<String, IconData> categoryIcons = {
+        'Cameras': Icons.camera_alt_outlined,
+        'Electronics': Icons.speaker_outlined,
+        'Tools': Icons.construction_outlined,
+        'Fashion': Icons.checkroom_outlined,
+        'Sports': Icons.sports_soccer_outlined,
+        'Instruments': Icons.music_note_outlined,
+        'Camping': Icons.cabin_outlined,
+        'Other': Icons.category_outlined,
+      };
+      final Map<String, Color> categoryColors = {
+        'Cameras': const Color(0xFF4A90D9),
+        'Electronics': const Color(0xFF9B59B6),
+        'Tools': const Color(0xFFE67E22),
+        'Fashion': const Color(0xFFE74C3C),
+        'Sports': const Color(0xFF2ECC71),
+        'Instruments': const Color(0xFFF39C12),
+        'Camping': const Color(0xFF1ABC9C),
+        'Other': const Color(0xFF95A5A6),
+      };
+      setState(() {
+        _categories = categoryNames.map((name) => CategoryModel(
+              name: name,
+              icon: categoryIcons[name] ?? Icons.category_outlined,
+              itemCount: categoryCounts[name] ?? 0,
+              color: categoryColors[name] ?? const Color(0xFF95A5A6),
+            )).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
 
   List<CategoryModel> get _filteredCategories {
     if (_searchQuery.isEmpty) return _categories;
@@ -109,7 +102,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: CustomAppBar(
         title: 'Categories',
         actions: [
@@ -131,123 +123,130 @@ class _CategoryScreenState extends State<CategoryScreen> {
       ),
       drawer: const AppDrawer(currentRoute: '/category'),
 
-      body: Column(
-        children: [
-          // ── SEARCH CARD ─────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.navy.withValues(alpha: 0.08),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: TextField(
-                onChanged: (value) => setState(() => _searchQuery = value),
-                decoration: InputDecoration(
-                  hintText: 'Find a category...',
-                  hintStyle: const TextStyle(color: AppColors.textHint),
-                  prefixIcon: const Icon(
-                    Icons.search,
-                    color: AppColors.textSecondary,
-                  ),
-                  suffixIcon: _searchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(
-                            Icons.clear_rounded,
-                            color: AppColors.textHint,
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                // ── SEARCH CARD ─────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceFor(context),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color:
+                              AppColors.navyFor(context).withValues(alpha: 0.08),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: TextField(
+                      onChanged: (value) =>
+                          setState(() => _searchQuery = value),
+                      decoration: InputDecoration(
+                        hintText: 'Find a category...',
+                        hintStyle:
+                            TextStyle(color: AppColors.textHintFor(context)),
+                        prefixIcon: Icon(
+                          Icons.search,
+                          color: AppColors.textSecondaryFor(context),
+                        ),
+                        suffixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: Icon(
+                                  Icons.clear_rounded,
+                                  color: AppColors.textHintFor(context),
+                                ),
+                                onPressed: () {
+                                  setState(() => _searchQuery = '');
+                                },
+                              )
+                            : null,
+                        filled: true,
+                        fillColor: AppColors.surfaceFor(context),
+                        contentPadding:
+                            const EdgeInsets.symmetric(vertical: 14),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: const BorderSide(
+                            color: AppColors.primary,
+                            width: 1.5,
                           ),
-                          onPressed: () {
-                            setState(() => _searchQuery = '');
-                          },
-                        )
-                      : null,
-                  filled: true,
-                  fillColor: AppColors.surface,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(
-                      color: AppColors.primary,
-                      width: 1.5,
+                        ),
+                      ),
+                      style:
+                          TextStyle(color: AppColors.textPrimaryFor(context)),
                     ),
                   ),
                 ),
-                style: const TextStyle(color: AppColors.textPrimary),
-              ),
-            ),
-          ),
 
-          // ── QUICK STATS ──────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
+                // ── QUICK STATS ──────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
                   child: Row(
                     children: [
-                      Icon(
-                        Icons.category_rounded,
-                        size: 16,
-                        color: AppColors.primary,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${_filteredCategories.length} Categories',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary,
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.category_rounded,
+                              size: 16,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${_filteredCategories.length} Categories',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+                      const Spacer(),
+                      if (_searchQuery.isNotEmpty)
+                        Text(
+                          '${_filteredCategories.length} results',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondaryFor(context),
+                          ),
+                        ),
                     ],
                   ),
                 ),
-                const Spacer(),
-                if (_searchQuery.isNotEmpty)
-                  Text(
-                    '${_filteredCategories.length} results',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
+
+                // ── GRID or LIST ──────────────────────────────────
+                Expanded(
+                  child: _filteredCategories.isEmpty
+                      ? _buildEmptyState()
+                      : _selectedView == 'grid'
+                          ? _buildGridView()
+                          : _buildListView(),
+                ),
               ],
             ),
-          ),
-
-          // ── GRID or LIST ──────────────────────────────────
-          Expanded(
-            child: _filteredCategories.isEmpty
-                ? _buildEmptyState()
-                : _selectedView == 'grid'
-                ? _buildGridView()
-                : _buildListView(),
-          ),
-        ],
-      ),
     );
   }
 
@@ -320,18 +319,19 @@ class _CategoryScreenState extends State<CategoryScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'No Categories Found',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+                color: AppColors.textPrimaryFor(context),
               ),
             ),
             const SizedBox(height: 6),
             Text(
               'Try adjusting your search terms',
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+              style: TextStyle(
+                  fontSize: 14, color: AppColors.textSecondaryFor(context)),
             ),
             const SizedBox(height: 20),
             if (_searchQuery.isNotEmpty)
@@ -376,11 +376,11 @@ class _CategoryCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: AppColors.surfaceFor(context),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: AppColors.navy.withValues(alpha: 0.06),
+              color: AppColors.navyFor(context).withValues(alpha: 0.06),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -413,10 +413,10 @@ class _CategoryCard extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               category.name,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: AppColors.textPrimaryFor(context),
               ),
               textAlign: TextAlign.center,
               maxLines: 2,
@@ -463,11 +463,11 @@ class _CategoryListItem extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: AppColors.surfaceFor(context),
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: AppColors.navy.withValues(alpha: 0.04),
+              color: AppColors.navyFor(context).withValues(alpha: 0.04),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -498,10 +498,10 @@ class _CategoryListItem extends StatelessWidget {
                 children: [
                   Text(
                     category.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+                      color: AppColors.textPrimaryFor(context),
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -509,7 +509,7 @@ class _CategoryListItem extends StatelessWidget {
                     '${category.itemCount} items available',
                     style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.textSecondary,
+                      color: AppColors.textSecondaryFor(context),
                     ),
                   ),
                 ],
