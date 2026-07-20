@@ -1,7 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../constants/app_colors.dart';
 import '../constants/custom_app_bar.dart';
@@ -46,7 +44,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
   bool _isFeatured = false;
   String _condition = 'Good';
   List<String> _existingImageUrls = [];
-  final List<XFile> _newImages = [];
+  final List<PickedImage> _newImages = [];
   final List<String> _imagesToDelete = [];
 
   final List<String> _categories = [
@@ -1142,8 +1140,8 @@ class _EditItemScreenState extends State<EditItemScreen> {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: Image.file(
-              File(_newImages[index].path),
+            child: Image.memory(
+              _newImages[index].bytes,
               fit: BoxFit.cover,
               errorBuilder: (_, _, _) => Container(
                 color: AppColors.backgroundFor(context),

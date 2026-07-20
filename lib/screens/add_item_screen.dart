@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/custom_app_bar.dart';
@@ -6,7 +5,6 @@ import '../constants/app_drawer.dart';
 import '../constants/custom_bottom_nav.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:image_picker/image_picker.dart';
 import '../services/image_service.dart';
 
 // ─────────────────────────────────────────────────────────────
@@ -42,7 +40,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
   bool _isAvailable = true;
   bool _isFeatured = false;
   String _condition = 'Good';
-  final List<XFile> _pickedImages = [];
+  final List<PickedImage> _pickedImages = [];
   bool _isUploading = false;
 
   final List<String> _categories = [
@@ -87,7 +85,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
   }
 
   Future<void> _pickImages() async {
-    final images = await ImageService.pickImages(maxCount: 5 - _pickedImages.length);
+    final images = await ImageService.pickImages(
+      maxCount: 5 - _pickedImages.length,
+    );
     if (images.isNotEmpty) {
       setState(() => _pickedImages.addAll(images));
     }
@@ -931,7 +931,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
   }
 
   Widget _buildImageThumb(int index) {
-    final file = _pickedImages[index];
+    final img = _pickedImages[index];
     return Stack(
       children: [
         Container(
@@ -943,8 +943,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: Image.file(
-              File(file.path),
+            child: Image.memory(
+              img.bytes,
               fit: BoxFit.cover,
               errorBuilder: (_, _, _) => Container(
                 color: AppColors.backgroundFor(context),

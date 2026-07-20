@@ -156,7 +156,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (uid == null) return;
 
     try {
-      final url = await ImageService.uploadImage(picked.path, uid, 'avatars');
+      final url = await ImageService.uploadImage(picked, uid, 'avatars');
       await FirebaseFirestore.instance.collection('users').doc(uid).update({
         'avatarUrl': url,
       });
