@@ -79,6 +79,7 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen>
           'itemPrice': data['itemPrice'] ?? '',
           'renterId': data['renterId'] ?? '',
           'renterName': data['renterName'] ?? 'Unknown',
+          'ownerPhone': data['ownerPhone'] ?? '',
           'startDate': data['startDate'],
           'endDate': data['endDate'],
           'totalDays': data['totalDays'] ?? 0,

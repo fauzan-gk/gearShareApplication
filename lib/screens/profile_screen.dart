@@ -15,6 +15,7 @@ import '../services/image_service.dart';
 // ─────────────────────────────────────────────────────────────
 class UserProfile {
   final String name;
+  final String phoneNumber;
   final String location;
   final String avatarUrl;
   final int listings;
@@ -23,6 +24,7 @@ class UserProfile {
 
   const UserProfile({
     required this.name,
+    required this.phoneNumber,
     required this.location,
     required this.avatarUrl,
     required this.listings,
@@ -30,8 +32,9 @@ class UserProfile {
     required this.rating,
   });
 
-  UserProfile copyWith({String? name, String? location, String? avatarUrl}) => UserProfile(
+  UserProfile copyWith({String? name, String? phoneNumber, String? location, String? avatarUrl}) => UserProfile(
     name: name ?? this.name,
+    phoneNumber: phoneNumber ?? this.phoneNumber,
     location: location ?? this.location,
     avatarUrl: avatarUrl ?? this.avatarUrl,
     listings: listings,
@@ -55,6 +58,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   UserProfile _profile = const UserProfile(
     name: '',
+    phoneNumber: '',
     location: '',
     avatarUrl: '',
     listings: 0,
@@ -73,11 +77,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         .get();
 
     String name = '';
+    String phoneNumber = '';
     String location = '';
     String avatar = '';
     if (doc.exists) {
       final data = doc.data()!;
       name = data['name'] ?? '';
+      phoneNumber = data['phone'] ?? '';
       location = data['location'] ?? '';
       avatar = data['avatarUrl'] ?? '';
     }
@@ -115,6 +121,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       _profile = UserProfile(
         name: name,
+        phoneNumber: phoneNumber,
         location: location,
         avatarUrl: avatar,
         listings: listingsCount,
@@ -170,6 +177,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() {
         _profile = UserProfile(
           name: _profile.name,
+          phoneNumber: _profile.phoneNumber,
           location: _profile.location,
           avatarUrl: url,
           listings: _profile.listings,
@@ -202,6 +210,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (uid != null) {
         await FirebaseFirestore.instance.collection('users').doc(uid).update({
           'name': updated.name,
+          'phone': updated.phoneNumber,
           'location': updated.location,
         });
         await FirebaseAuth.instance.currentUser
@@ -470,6 +479,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ],
                   ),
                 ),
+                if (_profile.phoneNumber.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.phone_outlined,
+                          color: AppColors.primary,
+                          size: 13,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _profile.phoneNumber,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -780,18 +820,21 @@ class _EditProfileSheet extends StatefulWidget {
 
 class _EditProfileSheetState extends State<_EditProfileSheet> {
   late final TextEditingController _nameCtrl;
+  late final TextEditingController _phoneCtrl;
   late final TextEditingController _locCtrl;
 
   @override
   void initState() {
     super.initState();
     _nameCtrl = TextEditingController(text: widget.profile.name);
+    _phoneCtrl = TextEditingController(text: widget.profile.phoneNumber);
     _locCtrl = TextEditingController(text: widget.profile.location);
   }
 
   @override
   void dispose() {
     _nameCtrl.dispose();
+    _phoneCtrl.dispose();
     _locCtrl.dispose();
     super.dispose();
   }
@@ -833,6 +876,8 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
           const SizedBox(height: 24),
           _field('Full Name', _nameCtrl, Icons.person_outline_rounded),
           const SizedBox(height: 14),
+          _field('Phone Number', _phoneCtrl, Icons.phone_outlined),
+          const SizedBox(height: 14),
           _field('Location', _locCtrl, Icons.location_on_outlined),
           const SizedBox(height: 24),
           SizedBox(
@@ -852,6 +897,7 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
                   context,
                   widget.profile.copyWith(
                     name: _nameCtrl.text.trim(),
+                    phoneNumber: _phoneCtrl.text.trim(),
                     location: _locCtrl.text.trim(),
                   ),
                 );

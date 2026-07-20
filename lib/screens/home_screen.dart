@@ -5,6 +5,7 @@ import '../constants/custom_app_bar.dart';
 import '../constants/app_drawer.dart';
 import '../constants/custom_bottom_nav.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,6 +15,39 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  String _acceptedPhone = '';
+  String _acceptedItemName = '';
+  bool _dismissedAccepted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAcceptedRequest();
+  }
+
+  Future<void> _loadAcceptedRequest() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('rentalRequests')
+          .where('renterId', isEqualTo: uid)
+          .where('status', isEqualTo: 'approved')
+          .limit(1)
+          .get();
+      if (snapshot.docs.isNotEmpty) {
+        final data = snapshot.docs.first.data();
+        final phone = data['ownerPhone'] as String? ?? '';
+        if (phone.isNotEmpty) {
+          setState(() {
+            _acceptedPhone = phone;
+            _acceptedItemName = data['itemName'] as String? ?? 'an item';
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
   final List<Map<String, dynamic>> _categories = [
     {'name': 'Cameras', 'icon': Icons.camera_alt_outlined, 'color': 0xFF4A90D9},
     {'name': 'Tools', 'icon': Icons.construction_outlined, 'color': 0xFFE67E22},
@@ -45,9 +79,75 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ── ACCEPTED REQUEST CARD ───────────────────────
+            if (_acceptedPhone.isNotEmpty && !_dismissedAccepted)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.success.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.check_circle_outline,
+                          color: AppColors.success,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Rental Approved!',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                                color: AppColors.success,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Contact owner for $_acceptedItemName at $_acceptedPhone',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.success,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => setState(() => _dismissedAccepted = true),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          child: const Icon(
+                            Icons.close,
+                            size: 18,
+                            color: AppColors.success,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
             // ── SEARCH BAR ──────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              padding: EdgeInsets.fromLTRB(16, _acceptedPhone.isNotEmpty && !_dismissedAccepted ? 12 : 16, 16, 0),
               child: InkWell(
                 onTap: () => Navigator.pushNamed(context, '/browse-search'),
                 borderRadius: BorderRadius.circular(16),

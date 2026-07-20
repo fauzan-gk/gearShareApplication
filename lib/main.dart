@@ -136,6 +136,7 @@ class GearShareApp extends StatelessWidget {
             page = RentalRequestScreen(
               itemName: args['itemName']!,
               itemPrice: args['itemPrice']!,
+              ownerId: args['ownerId'] ?? '',
             );
             break;
           }

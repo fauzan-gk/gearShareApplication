@@ -5,11 +5,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class RentalRequestScreen extends StatefulWidget {
   final String itemName;
   final String itemPrice;
+  final String ownerId;
 
   const RentalRequestScreen({
     super.key,
     required this.itemName,
     required this.itemPrice,
+    required this.ownerId,
   });
 
   @override
@@ -91,11 +93,22 @@ class _RentalRequestScreenState extends State<RentalRequestScreen> {
       final renterName = userDoc.data()?['name'] as String? ?? 'Unknown';
       final price = double.tryParse(widget.itemPrice) ?? 0;
 
+      String ownerPhone = '';
+      if (widget.ownerId.isNotEmpty) {
+        final ownerDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(widget.ownerId)
+            .get();
+        ownerPhone = ownerDoc.data()?['phone'] as String? ?? '';
+      }
+
       await FirebaseFirestore.instance.collection('rentalRequests').add({
         'itemName': widget.itemName,
         'itemPrice': widget.itemPrice,
         'renterId': uid,
         'renterName': renterName,
+        'ownerId': widget.ownerId,
+        'ownerPhone': ownerPhone,
         'totalAmount': price * _totalDays,
         'startDate': Timestamp.fromDate(_startDate!),
         'endDate': Timestamp.fromDate(_endDate!),

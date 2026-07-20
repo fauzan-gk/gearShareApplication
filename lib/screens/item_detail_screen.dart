@@ -28,6 +28,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
   int _currentImageIndex = 0;
   String _itemLocation = '';
   String _ownerName = '';
+  String _ownerId = '';
   bool _isLoading = true;
   List<Map<String, dynamic>> _reviews = [];
 
@@ -68,6 +69,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
           }
           _itemLocation = data['location'] ?? 'Unknown';
           _ownerName = data['ownerName'] ?? 'Unknown';
+          _ownerId = data['ownerId'] ?? '';
           _isLoading = false;
         });
       } else {
@@ -1001,6 +1003,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                         arguments: {
                           'itemName': _itemName,
                           'itemPrice': _itemPrice,
+                          'ownerId': _ownerId,
                         },
                       );
                     },

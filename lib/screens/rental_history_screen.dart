@@ -39,6 +39,7 @@ class _RentalHistoryScreenState extends State<RentalHistoryScreen> {
           return RentalHistoryCard(
             itemName: data['itemName'] ?? 'Unknown Item',
             renterName: data['renterName'] ?? 'Unknown',
+            ownerPhone: data['ownerPhone'] ?? '',
             rentalDate: _formatDate((data['rentalDate'] as Timestamp).toDate()),
             returnDate: _formatDate((data['returnDate'] as Timestamp).toDate()),
             totalAmount: data['totalAmount'] ?? 0,
@@ -159,6 +160,7 @@ class _RentalHistoryScreenState extends State<RentalHistoryScreen> {
 class RentalHistoryCard extends StatelessWidget {
   final String itemName;
   final String renterName;
+  final String ownerPhone;
   final String rentalDate;
   final String returnDate;
   final int totalAmount;
@@ -168,6 +170,7 @@ class RentalHistoryCard extends StatelessWidget {
     super.key,
     required this.itemName,
     required this.renterName,
+    required this.ownerPhone,
     required this.rentalDate,
     required this.returnDate,
     required this.totalAmount,
@@ -256,6 +259,32 @@ class RentalHistoryCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
+
+          if (!isCompleted && ownerPhone.isNotEmpty) ...[
+            Row(
+              children: [
+                Icon(
+                  Icons.phone_outlined,
+                  size: 16,
+                  color: AppColors.success,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Owner phone: ',
+                  style: TextStyle(color: AppColors.textSecondaryFor(context), fontSize: 13),
+                ),
+                Text(
+                  ownerPhone,
+                  style: TextStyle(
+                    color: AppColors.success,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+          ],
 
           Container(
             padding: const EdgeInsets.all(12),
