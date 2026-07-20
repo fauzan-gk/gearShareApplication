@@ -24,7 +24,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
   String _itemPrice = '';
   String _itemDescription = '';
   String _itemCategory = '';
-  String _itemImage = '';
+  List<String> _imageUrls = [];
+  int _currentImageIndex = 0;
   String _itemLocation = '';
   String _ownerName = '';
   bool _isLoading = true;
@@ -58,7 +59,13 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
           _itemPrice = data['price'].toString();
           _itemDescription = data['description'] ?? '';
           _itemCategory = data['category'] ?? '';
-          _itemImage = data['imageUrl'] ?? data['image'] ?? '';
+          final urls = data['imageUrls'];
+          if (urls is List && urls.isNotEmpty) {
+            _imageUrls = urls.map((e) => e.toString()).toList();
+          } else {
+            final single = data['imageUrl'] ?? data['image'] ?? '';
+            _imageUrls = single.toString().isNotEmpty ? [single.toString()] : [];
+          }
           _itemLocation = data['location'] ?? 'Unknown';
           _ownerName = data['ownerName'] ?? 'Unknown';
           _isLoading = false;
@@ -193,14 +200,27 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    _itemImage.isNotEmpty
-                        ? Image.network(
-                            _itemImage,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                _buildImagePlaceholder(),
-                          )
-                        : _buildImagePlaceholder(),
+                    if (_imageUrls.isNotEmpty)
+                      _imageUrls.length > 1
+                          ? PageView.builder(
+                              itemCount: _imageUrls.length,
+                              onPageChanged: (index) =>
+                                  setState(() => _currentImageIndex = index),
+                              itemBuilder: (context, index) => Image.network(
+                                _imageUrls[index],
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, _, _) =>
+                                    _buildImagePlaceholder(),
+                              ),
+                            )
+                          : Image.network(
+                              _imageUrls.first,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) =>
+                                  _buildImagePlaceholder(),
+                            )
+                    else
+                      _buildImagePlaceholder(),
                     Positioned(
                       bottom: 0,
                       left: 0,
@@ -219,6 +239,30 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                         ),
                       ),
                     ),
+                    if (_imageUrls.length > 1)
+                      Positioned(
+                        bottom: 68,
+                        left: 0,
+                        right: 0,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(
+                            _imageUrls.length,
+                            (index) => Container(
+                              margin:
+                                  const EdgeInsets.symmetric(horizontal: 3),
+                              width: _currentImageIndex == index ? 10 : 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: _currentImageIndex == index
+                                    ? Colors.white
+                                    : Colors.white.withValues(alpha: 0.4),
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),

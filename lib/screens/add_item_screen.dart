@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/custom_app_bar.dart';
@@ -5,6 +6,8 @@ import '../constants/app_drawer.dart';
 import '../constants/custom_bottom_nav.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
+import '../services/image_service.dart';
 
 // ─────────────────────────────────────────────────────────────
 // ADD ITEM SCREEN
@@ -38,7 +41,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
   String? _selectedCategory;
   bool _isAvailable = true;
   bool _isFeatured = false;
-  String _condition = 'Good'; // New: Item condition
+  String _condition = 'Good';
+  final List<XFile> _pickedImages = [];
+  bool _isUploading = false;
 
   final List<String> _categories = [
     'Electronics',
@@ -81,8 +86,20 @@ class _AddItemScreenState extends State<AddItemScreen> {
     super.dispose();
   }
 
+  Future<void> _pickImages() async {
+    final images = await ImageService.pickImages(maxCount: 5 - _pickedImages.length);
+    if (images.isNotEmpty) {
+      setState(() => _pickedImages.addAll(images));
+    }
+  }
+
+  void _removeImage(int index) {
+    setState(() => _pickedImages.removeAt(index));
+  }
+
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
+      setState(() => _isUploading = true);
       try {
         final uid = FirebaseAuth.instance.currentUser?.uid;
         if (uid == null) return;
@@ -92,6 +109,16 @@ class _AddItemScreenState extends State<AddItemScreen> {
             .doc(uid)
             .get();
         final ownerName = userDoc.data()?['name'] as String? ?? 'Unknown';
+
+        List<String> imageUrls = [];
+        if (_pickedImages.isNotEmpty) {
+          final urls = await ImageService.uploadImages(
+            _pickedImages,
+            uid,
+            'listings',
+          );
+          imageUrls = urls;
+        }
 
         await FirebaseFirestore.instance.collection('listings').add({
           'name': _nameController.text.trim(),
@@ -104,10 +131,12 @@ class _AddItemScreenState extends State<AddItemScreen> {
           'isFeatured': _isFeatured,
           'ownerId': uid,
           'ownerName': ownerName,
+          'imageUrls': imageUrls,
           'createdAt': FieldValue.serverTimestamp(),
         });
 
         if (!mounted) return;
+        setState(() => _isUploading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
@@ -126,7 +155,6 @@ class _AddItemScreenState extends State<AddItemScreen> {
           ),
         );
 
-        // Clear form
         _nameController.clear();
         _priceController.clear();
         _descriptionController.clear();
@@ -135,9 +163,11 @@ class _AddItemScreenState extends State<AddItemScreen> {
           _selectedCategory = null;
           _isAvailable = true;
           _condition = 'Good';
+          _pickedImages.clear();
         });
       } catch (e) {
         if (!mounted) return;
+        setState(() => _isUploading = false);
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Failed to publish: $e')));
@@ -326,91 +356,35 @@ class _AddItemScreenState extends State<AddItemScreen> {
                 subtitle: 'Add up to 5 photos of your item',
                 child: Column(
                   children: [
-                    // Main photo upload area with improved design
-                    InkWell(
-                      onTap: () {
-                        // TODO Phase 4: integrate image_picker / camera here
-                      },
-                      borderRadius: BorderRadius.circular(14),
-                      child: Container(
-                        height: 180,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              AppColors.primary.withValues(alpha: 0.06),
-                              AppColors.primary.withValues(alpha: 0.02),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: AppColors.primary.withValues(alpha: 0.3),
-                            width: 2,
-                            style: BorderStyle.solid,
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    AppColors.primary.withValues(alpha: 0.15),
-                                    AppColors.primary.withValues(alpha: 0.05),
-                                  ],
-                                ),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.add_photo_alternate_outlined,
-                                size: 32,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'Tap to add photos',
-                              style: TextStyle(
-                                color: AppColors.textPrimaryFor(context),
-                                fontWeight: FontWeight.w600,
-                                fontSize: 15,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'PNG, JPG or WEBP • Max 5MB each',
-                              style: TextStyle(
-                                color: AppColors.textHintFor(context),
-                                fontSize: 12,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            // ── FIXED: Photo thumbnails ────────
-                            // Wrapped in a Row with MainAxisSize.min and fixed width
-                            // to prevent overflow
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                _buildPhotoThumbnail(0),
-                                const SizedBox(width: 4),
-                                _buildPhotoThumbnail(1),
-                                const SizedBox(width: 4),
-                                _buildPhotoThumbnail(2),
-                                const SizedBox(width: 4),
-                                _buildPhotoThumbnail(3),
-                                const SizedBox(width: 4),
-                                _buildPhotoThumbnail(4, isAddMore: true),
-                              ],
-                            ),
-                          ],
+                    if (_pickedImages.isNotEmpty)
+                      SizedBox(
+                        height: 100,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _pickedImages.length +
+                              (_pickedImages.length < 5 ? 1 : 0),
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(width: 8),
+                          itemBuilder: (context, index) {
+                            if (index == _pickedImages.length) {
+                              return _buildAddImageButton();
+                            }
+                            return _buildImageThumb(index);
+                          },
                         ),
                       ),
-                    ),
+                    if (_pickedImages.isEmpty) _buildEmptyImageArea(),
+                    if (_pickedImages.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          '${_pickedImages.length}/5 photos selected',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textHintFor(context),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -719,29 +693,54 @@ class _AddItemScreenState extends State<AddItemScreen> {
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: _submitForm,
+                      onPressed: _isUploading ? null : _submitForm,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
+                        disabledBackgroundColor:
+                            AppColors.primary.withValues(alpha: 0.6),
                       ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.send_rounded, color: Colors.white),
-                          SizedBox(width: 10),
-                          Text(
-                            'Publish Listing',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
+                      child: _isUploading
+                          ? const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                SizedBox(width: 10),
+                                Text(
+                                  'Uploading...',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.send_rounded, color: Colors.white),
+                                SizedBox(width: 10),
+                                Text(
+                                  'Publish Listing',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
-                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -827,29 +826,157 @@ class _AddItemScreenState extends State<AddItemScreen> {
     );
   }
 
-  // ─── BUILD PHOTO THUMBNAIL ───────────────────────────────
-  // FIXED: Added fixed width and height to prevent overflow
-  Widget _buildPhotoThumbnail(int index, {bool isAddMore = false}) {
-    return Container(
-      width: 32, // Fixed width
-      height: 32, // Fixed height
-      decoration: BoxDecoration(
-        color: isAddMore
-            ? AppColors.primary.withValues(alpha: 0.1)
-            : AppColors.borderFor(context).withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: isAddMore
-              ? AppColors.primary.withValues(alpha: 0.3)
-              : AppColors.borderFor(context),
-          width: 1,
+  // ─── BUILD ADD IMAGE BUTTON ──────────────────────────────
+  Widget _buildAddImageButton() {
+    return GestureDetector(
+      onTap: _pickImages,
+      child: Container(
+        width: 100,
+        height: 100,
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.3),
+            width: 2,
+            style: BorderStyle.solid,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.add_photo_alternate_outlined,
+              size: 28,
+              color: AppColors.primary,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Add',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primary,
+              ),
+            ),
+          ],
         ),
       ),
-      child: Icon(
-        isAddMore ? Icons.add_rounded : Icons.image_outlined,
-        size: isAddMore ? 16 : 14,
-        color: isAddMore ? AppColors.primary : AppColors.textSecondaryFor(context),
+    );
+  }
+
+  Widget _buildEmptyImageArea() {
+    return GestureDetector(
+      onTap: _pickImages,
+      child: Container(
+        height: 140,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.primary.withValues(alpha: 0.06),
+              AppColors.primary.withValues(alpha: 0.02),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.3),
+            width: 2,
+            style: BorderStyle.solid,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.primary.withValues(alpha: 0.15),
+                    AppColors.primary.withValues(alpha: 0.05),
+                  ],
+                ),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.add_photo_alternate_outlined,
+                size: 28,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Tap to add photos',
+              style: TextStyle(
+                color: AppColors.textPrimaryFor(context),
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'PNG, JPG or WEBP • Max 5MB each',
+              style: TextStyle(
+                color: AppColors.textHintFor(context),
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildImageThumb(int index) {
+    final file = _pickedImages[index];
+    return Stack(
+      children: [
+        Container(
+          width: 100,
+          height: 100,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.borderFor(context)),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.file(
+              File(file.path),
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => Container(
+                color: AppColors.backgroundFor(context),
+                child: Icon(
+                  Icons.broken_image_outlined,
+                  color: AppColors.textHintFor(context),
+                ),
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          top: 4,
+          right: 4,
+          child: GestureDetector(
+            onTap: () => _removeImage(index),
+            child: Container(
+              width: 24,
+              height: 24,
+              decoration: const BoxDecoration(
+                color: Colors.black54,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.close_rounded,
+                color: Colors.white,
+                size: 16,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 

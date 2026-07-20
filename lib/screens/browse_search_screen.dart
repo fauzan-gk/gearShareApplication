@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../constants/app_colors.dart';
 import '../constants/custom_app_bar.dart';
@@ -15,6 +16,7 @@ class GearItem {
   final double rating;
   final bool isAvailable;
   final String location;
+  final String imageUrl;
 
   const GearItem({
     required this.id,
@@ -25,6 +27,7 @@ class GearItem {
     required this.rating,
     required this.isAvailable,
     required this.location,
+    required this.imageUrl,
   });
 
   // Convert Firestore document to GearItem
@@ -39,6 +42,7 @@ class GearItem {
       rating: (data['rating'] ?? 0.0).toDouble(),
       isAvailable: data['isAvailable'] ?? true,
       location: data['location'] ?? 'Unknown',
+      imageUrl: (data['imageUrls'] is List && (data['imageUrls'] as List).isNotEmpty) ? (data['imageUrls'] as List).first.toString() : '',
     );
   }
 }
@@ -585,15 +589,38 @@ class _GearListItem extends StatelessWidget {
                 color: AppColors.primary.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(10),
               ),
+              clipBehavior: Clip.antiAlias,
               child: Stack(
                 children: [
-                  Center(
-                    child: Icon(
-                      _iconForCategory(item.category),
-                      size: 32,
-                      color: AppColors.primary.withValues(alpha: 0.5),
+                  if (item.imageUrl.isNotEmpty)
+                    Positioned.fill(
+                      child: CachedNetworkImage(
+                        imageUrl: item.imageUrl,
+                        fit: BoxFit.cover,
+placeholder: (_, _) => Center(
+                           child: Icon(
+                             _iconForCategory(item.category),
+                             size: 32,
+                             color: AppColors.primary.withValues(alpha: 0.5),
+                           ),
+                         ),
+                         errorWidget: (_, _, _) => Center(
+                          child: Icon(
+                            _iconForCategory(item.category),
+                            size: 32,
+                            color: AppColors.primary.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    Center(
+                      child: Icon(
+                        _iconForCategory(item.category),
+                        size: 32,
+                        color: AppColors.primary.withValues(alpha: 0.5),
+                      ),
                     ),
-                  ),
                   if (!item.isAvailable)
                     Container(
                       decoration: BoxDecoration(

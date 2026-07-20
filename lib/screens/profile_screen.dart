@@ -5,6 +5,7 @@ import '../constants/app_drawer.dart';
 import '../constants/custom_bottom_nav.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/image_service.dart';
 
 // ─────────────────────────────────────────────────────────────
 // USER PROFILE MODEL
@@ -14,6 +15,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class UserProfile {
   final String name;
   final String location;
+  final String avatarUrl;
   final int listings;
   final int rentals;
   final double rating;
@@ -21,14 +23,16 @@ class UserProfile {
   const UserProfile({
     required this.name,
     required this.location,
+    required this.avatarUrl,
     required this.listings,
     required this.rentals,
     required this.rating,
   });
 
-  UserProfile copyWith({String? name, String? location}) => UserProfile(
+  UserProfile copyWith({String? name, String? location, String? avatarUrl}) => UserProfile(
     name: name ?? this.name,
     location: location ?? this.location,
+    avatarUrl: avatarUrl ?? this.avatarUrl,
     listings: listings,
     rentals: rentals,
     rating: rating,
@@ -51,6 +55,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   UserProfile _profile = const UserProfile(
     name: '',
     location: '',
+    avatarUrl: '',
     listings: 0,
     rentals: 0,
     rating: 0.0,
@@ -68,10 +73,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     String name = '';
     String location = '';
+    String avatar = '';
     if (doc.exists) {
       final data = doc.data()!;
       name = data['name'] ?? '';
       location = data['location'] ?? '';
+      avatar = data['avatarUrl'] ?? '';
     }
 
     final listingsSnapshot = await FirebaseFirestore.instance
@@ -108,6 +115,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _profile = UserProfile(
         name: name,
         location: location,
+        avatarUrl: avatar,
         listings: listingsCount,
         rentals: rentalsCount,
         rating: avgRating,
@@ -137,6 +145,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
         duration: const Duration(seconds: 2),
       ),
     );
+  }
+
+  Future<void> _pickAvatar() async {
+    final picked = await ImageService.pickSingleImage();
+    if (picked == null) return;
+    if (!mounted) return;
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    try {
+      final url = await ImageService.uploadImage(picked.path, uid, 'avatars');
+      await FirebaseFirestore.instance.collection('users').doc(uid).update({
+        'avatarUrl': url,
+      });
+      if (!mounted) return;
+      setState(() {
+        _profile = UserProfile(
+          name: _profile.name,
+          location: _profile.location,
+          avatarUrl: url,
+          listings: _profile.listings,
+          rentals: _profile.rentals,
+          rating: _profile.rating,
+        );
+      });
+      _showSnack('Profile photo updated');
+    } catch (e) {
+      if (!mounted) return;
+      _showSnack('Failed to update photo');
+    }
   }
 
   // ── NAVIGATION HANDLERS ──────────────────────────────────
@@ -302,7 +341,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               children: [
                 GestureDetector(
-                  onTap: _openEditProfile,
+                  onTap: _pickAvatar,
                   child: Stack(
                     children: [
                       Container(
@@ -316,14 +355,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             width: 3,
                           ),
                         ),
-                        child: const CircleAvatar(
-                          backgroundColor: Colors.white,
-                          child: Icon(
-                            Icons.person_rounded,
-                            size: 50,
-                            color: AppColors.primary,
-                          ),
-                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: _profile.avatarUrl.isNotEmpty
+                            ? Image.network(
+                                _profile.avatarUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, _, _) => const CircleAvatar(
+                                  backgroundColor: Colors.white,
+                                  child: Icon(
+                                    Icons.person_rounded,
+                                    size: 50,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              )
+                            : const CircleAvatar(
+                                backgroundColor: Colors.white,
+                                child: Icon(
+                                  Icons.person_rounded,
+                                  size: 50,
+                                  color: AppColors.primary,
+                                ),
+                              ),
                       ),
                       Positioned(
                         bottom: 1,

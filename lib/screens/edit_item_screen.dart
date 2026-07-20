@@ -1,7 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../constants/app_colors.dart';
 import '../constants/custom_app_bar.dart';
+import '../services/image_service.dart';
 
 // ─────────────────────────────────────────────────────────────
 // EDIT ITEM SCREEN
@@ -41,6 +45,9 @@ class _EditItemScreenState extends State<EditItemScreen> {
   bool _isInitialLoading = true;
   bool _isFeatured = false;
   String _condition = 'Good';
+  List<String> _existingImageUrls = [];
+  final List<XFile> _newImages = [];
+  final List<String> _imagesToDelete = [];
 
   final List<String> _categories = [
     'Cameras',
@@ -110,6 +117,10 @@ class _EditItemScreenState extends State<EditItemScreen> {
       _availability = data['isAvailable'] == true ? 'Available' : 'Rented';
       _condition = data['condition'] ?? 'Good';
       _isFeatured = data['isFeatured'] ?? false;
+      _existingImageUrls = (data['imageUrls'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [];
 
       if (mounted) setState(() => _isInitialLoading = false);
     } catch (e) {
@@ -131,6 +142,27 @@ class _EditItemScreenState extends State<EditItemScreen> {
     super.dispose();
   }
 
+  Future<void> _pickNewImages() async {
+    final images = await ImageService.pickImages(
+      maxCount: 5 - _existingImageUrls.length - _newImages.length,
+    );
+    if (images.isNotEmpty) {
+      setState(() => _newImages.addAll(images));
+    }
+  }
+
+  void _removeExistingImage(int index) {
+    final url = _existingImageUrls[index];
+    setState(() {
+      _imagesToDelete.add(url);
+      _existingImageUrls.removeAt(index);
+    });
+  }
+
+  void _removeNewImage(int index) {
+    setState(() => _newImages.removeAt(index));
+  }
+
   // ─── SAVE CHANGES METHOD ────────────────────────────────
   Future<void> _saveChanges() async {
     if (!_formKey.currentState!.validate()) return;
@@ -138,6 +170,24 @@ class _EditItemScreenState extends State<EditItemScreen> {
     setState(() => _isLoading = true);
 
     try {
+      // Delete removed images from storage
+      for (final url in _imagesToDelete) {
+        await ImageService.deleteImage(url);
+      }
+
+      // Upload new images
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      List<String> newlyUploadedUrls = [];
+      if (_newImages.isNotEmpty && uid != null) {
+        newlyUploadedUrls = await ImageService.uploadImages(
+          _newImages,
+          uid,
+          'listings',
+        );
+      }
+
+      final allImageUrls = [..._existingImageUrls, ...newlyUploadedUrls];
+
       await FirebaseFirestore.instance
           .collection('listings')
           .doc(widget.listingId)
@@ -150,6 +200,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
         'location': _locationController.text.trim(),
         'condition': _condition,
         'isFeatured': _isFeatured,
+        'imageUrls': allImageUrls,
       });
 
       if (!mounted) return;
@@ -284,76 +335,49 @@ class _EditItemScreenState extends State<EditItemScreen> {
 
                     // ── PHOTO CARD ─────────────────────────────────
                     _SectionCard(
-                      title: '📸 Photo',
-                      subtitle: 'Replace the current photo',
-                      child: InkWell(
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Photo picker coming soon!'),
-                              behavior: SnackBarBehavior.floating,
+                      title: '📸 Photos',
+                      subtitle: 'Manage listing images',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (_existingImageUrls.isNotEmpty || _newImages.isNotEmpty)
+                            SizedBox(
+                              height: 100,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: _existingImageUrls.length +
+                                    _newImages.length +
+                                    (_existingImageUrls.length + _newImages.length < 5
+                                        ? 1
+                                        : 0),
+                                separatorBuilder: (_, _) =>
+                                    const SizedBox(width: 8),
+                                itemBuilder: (context, index) {
+                                  final totalExisting = _existingImageUrls.length;
+                                  if (index < totalExisting) {
+                                    return _buildExistingImageThumb(index);
+                                  }
+                                  final newIndex = index - totalExisting;
+                                  if (newIndex < _newImages.length) {
+                                    return _buildNewImageThumb(newIndex);
+                                  }
+                                  return _buildAddImageButton();
+                                },
+                              ),
                             ),
-                          );
-                        },
-                        borderRadius: BorderRadius.circular(14),
-                        child: Container(
-                          height: 150,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                AppColors.primary.withValues(alpha: 0.06),
-                                AppColors.primary.withValues(alpha: 0.02),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: AppColors.primary.withValues(alpha: 0.3),
-                              width: 2,
+                          if (_existingImageUrls.isEmpty && _newImages.isEmpty)
+                            _buildEmptyImageArea(),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              '${_existingImageUrls.length + _newImages.length}/5 photos',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textHintFor(context),
+                              ),
                             ),
                           ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(14),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      AppColors.primary.withValues(alpha: 0.15),
-                                      AppColors.primary.withValues(alpha: 0.05),
-                                    ],
-                                  ),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  Icons.camera_alt_outlined,
-                                  size: 28,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                'Tap to replace photo',
-                                style: TextStyle(
-                                  color: AppColors.textPrimaryFor(context),
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'PNG, JPG or WEBP • Max 5MB',
-                                style: TextStyle(
-                                  color: AppColors.textHintFor(context),
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                        ],
                       ),
                     ),
 
@@ -941,6 +965,217 @@ class _EditItemScreenState extends State<EditItemScreen> {
         borderSide: const BorderSide(color: AppColors.error, width: 2),
         borderRadius: BorderRadius.circular(12),
       ),
+    );
+  }
+
+  // ─── IMAGE HELPERS ─────────────────────────────────────
+  Widget _buildAddImageButton() {
+    return GestureDetector(
+      onTap: _pickNewImages,
+      child: Container(
+        width: 100,
+        height: 100,
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.3),
+            width: 2,
+            style: BorderStyle.solid,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.add_photo_alternate_outlined,
+              size: 28,
+              color: AppColors.primary,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Add',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyImageArea() {
+    return GestureDetector(
+      onTap: _pickNewImages,
+      child: Container(
+        height: 140,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.primary.withValues(alpha: 0.06),
+              AppColors.primary.withValues(alpha: 0.02),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.3),
+            width: 2,
+            style: BorderStyle.solid,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.primary.withValues(alpha: 0.15),
+                    AppColors.primary.withValues(alpha: 0.05),
+                  ],
+                ),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.add_photo_alternate_outlined,
+                size: 28,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Tap to add photos',
+              style: TextStyle(
+                color: AppColors.textPrimaryFor(context),
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'PNG, JPG or WEBP',
+              style: TextStyle(
+                color: AppColors.textHintFor(context),
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExistingImageThumb(int index) {
+    return Stack(
+      children: [
+        Container(
+          width: 100,
+          height: 100,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.borderFor(context)),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.network(
+              _existingImageUrls[index],
+              fit: BoxFit.cover,
+              loadingBuilder: (_, child, progress) {
+                if (progress == null) return child;
+                return Container(
+                  color: AppColors.backgroundFor(context),
+                  child: const Center(
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                );
+              },
+              errorBuilder: (_, _, _) => Container(
+                color: AppColors.backgroundFor(context),
+                child: Icon(
+                  Icons.broken_image_outlined,
+                  color: AppColors.textHintFor(context),
+                ),
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          top: 4,
+          right: 4,
+          child: GestureDetector(
+            onTap: () => _removeExistingImage(index),
+            child: Container(
+              width: 24,
+              height: 24,
+              decoration: const BoxDecoration(
+                color: Colors.black54,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.close_rounded,
+                color: Colors.white,
+                size: 16,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNewImageThumb(int index) {
+    return Stack(
+      children: [
+        Container(
+          width: 100,
+          height: 100,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.borderFor(context)),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.file(
+              File(_newImages[index].path),
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => Container(
+                color: AppColors.backgroundFor(context),
+                child: Icon(
+                  Icons.broken_image_outlined,
+                  color: AppColors.textHintFor(context),
+                ),
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          top: 4,
+          right: 4,
+          child: GestureDetector(
+            onTap: () => _removeNewImage(index),
+            child: Container(
+              width: 24,
+              height: 24,
+              decoration: const BoxDecoration(
+                color: Colors.black54,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.close_rounded,
+                color: Colors.white,
+                size: 16,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

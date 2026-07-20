@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../constants/app_colors.dart';
 import '../constants/custom_app_bar.dart';
 import '../constants/app_drawer.dart';
@@ -342,6 +343,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       final price = 'Rs. ${data['price']?.toInt() ?? 0}/day';
                       final owner = data['ownerName'] ?? 'Unknown';
                       final rating = (data['rating'] ?? 0.0).toDouble();
+                      final imageUrls = data['imageUrls'] as List<dynamic>? ?? [];
+                      final imageUrl = imageUrls.isNotEmpty ? imageUrls.first.toString() : '';
                       return Container(
                         width: 160,
                         margin: const EdgeInsets.only(right: 12),
@@ -350,6 +353,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           price: price,
                           owner: owner,
                           rating: rating,
+                          imageUrl: imageUrl,
                           onTap: () => Navigator.pushNamed(
                             context,
                             '/item-detail',
@@ -437,11 +441,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     final price = 'Rs. ${data['price']?.toInt() ?? 0}/day';
                     final owner = data['ownerName'] ?? 'Unknown';
                     final rating = (data['rating'] ?? 0.0).toDouble();
+                    final imageUrls = data['imageUrls'] as List<dynamic>? ?? [];
+                    final imageUrl = imageUrls.isNotEmpty ? imageUrls.first.toString() : '';
                     return _RecentItemCard(
                       name: name,
                       price: price,
                       owner: owner,
                       rating: rating,
+                      imageUrl: imageUrl,
                       onTap: () => Navigator.pushNamed(
                         context,
                         '/item-detail',
@@ -467,6 +474,7 @@ class _FeaturedItemCard extends StatelessWidget {
   final String price;
   final String owner;
   final double rating;
+  final String imageUrl;
   final VoidCallback onTap;
 
   const _FeaturedItemCard({
@@ -474,6 +482,7 @@ class _FeaturedItemCard extends StatelessWidget {
     required this.price,
     required this.owner,
     required this.rating,
+    required this.imageUrl,
     required this.onTap,
   });
 
@@ -506,15 +515,38 @@ class _FeaturedItemCard extends StatelessWidget {
                   top: Radius.circular(16),
                 ),
               ),
+              clipBehavior: Clip.antiAlias,
               child: Stack(
                 children: [
-                  Center(
-                    child: Icon(
-                      Icons.image_outlined,
-                      size: 40,
-                      color: AppColors.primary.withValues(alpha: 0.5),
+                  if (imageUrl.isNotEmpty)
+                    Positioned.fill(
+                      child: CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        fit: BoxFit.cover,
+                        placeholder: (_, _) => Center(
+                          child: Icon(
+                            Icons.image_outlined,
+                            size: 40,
+                            color: AppColors.primary.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        errorWidget: (_, _, _) => Center(
+                          child: Icon(
+                            Icons.image_outlined,
+                            size: 40,
+                            color: AppColors.primary.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    Center(
+                      child: Icon(
+                        Icons.image_outlined,
+                        size: 40,
+                        color: AppColors.primary.withValues(alpha: 0.5),
+                      ),
                     ),
-                  ),
                   Positioned(
                     top: 8,
                     right: 8,
@@ -598,6 +630,7 @@ class _RecentItemCard extends StatelessWidget {
   final String price;
   final String owner;
   final double rating;
+  final String imageUrl;
   final VoidCallback onTap;
 
   const _RecentItemCard({
@@ -605,6 +638,7 @@ class _RecentItemCard extends StatelessWidget {
     required this.price,
     required this.owner,
     required this.rating,
+    required this.imageUrl,
     required this.onTap,
   });
 
@@ -636,11 +670,27 @@ class _RecentItemCard extends StatelessWidget {
                 color: AppColors.primary.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(
-                Icons.image_outlined,
-                size: 28,
-                color: AppColors.primary.withValues(alpha: 0.5),
-              ),
+              clipBehavior: Clip.antiAlias,
+              child: imageUrl.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: imageUrl,
+                      fit: BoxFit.cover,
+                      placeholder: (_, _) => Icon(
+                        Icons.image_outlined,
+                        size: 28,
+                        color: AppColors.primary.withValues(alpha: 0.5),
+                      ),
+                      errorWidget: (_, _, _) => Icon(
+                        Icons.image_outlined,
+                        size: 28,
+                        color: AppColors.primary.withValues(alpha: 0.5),
+                      ),
+                    )
+                  : Icon(
+                      Icons.image_outlined,
+                      size: 28,
+                      color: AppColors.primary.withValues(alpha: 0.5),
+                    ),
             ),
             const SizedBox(width: 12),
             Expanded(

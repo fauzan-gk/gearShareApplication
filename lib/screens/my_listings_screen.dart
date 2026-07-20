@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../constants/app_colors.dart';
@@ -16,6 +17,7 @@ class ListingItem {
   final double pricePerDay;
   final bool isAvailable;
   final DateTime dateAdded;
+  final String imageUrl;
 
   ListingItem({
     required this.id,
@@ -24,6 +26,7 @@ class ListingItem {
     required this.pricePerDay,
     required this.isAvailable,
     required this.dateAdded,
+    required this.imageUrl,
   });
 
   factory ListingItem.fromFirestore(DocumentSnapshot doc) {
@@ -35,6 +38,7 @@ class ListingItem {
       pricePerDay: (data['price'] ?? 0).toDouble(),
       isAvailable: data['isAvailable'] ?? true,
       dateAdded: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      imageUrl: (data['imageUrls'] is List && (data['imageUrls'] as List).isNotEmpty) ? (data['imageUrls'] as List).first.toString() : '',
     );
   }
 }
@@ -666,13 +670,33 @@ class _ListingCard extends StatelessWidget {
                     top: Radius.circular(16),
                   ),
                 ),
-                child: Center(
-                  child: Icon(
-                    _iconForCategory(item.category),
-                    size: 40,
-                    color: AppColors.primary.withValues(alpha: 0.6),
-                  ),
-                ),
+                clipBehavior: Clip.antiAlias,
+                child: item.imageUrl.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: item.imageUrl,
+                        fit: BoxFit.cover,
+                        placeholder: (_, _) => Center(
+                          child: Icon(
+                            _iconForCategory(item.category),
+                            size: 40,
+                            color: AppColors.primary.withValues(alpha: 0.6),
+                          ),
+                        ),
+                        errorWidget: (_, _, _) => Center(
+                          child: Icon(
+                            _iconForCategory(item.category),
+                            size: 40,
+                            color: AppColors.primary.withValues(alpha: 0.6),
+                          ),
+                        ),
+                      )
+                    : Center(
+                        child: Icon(
+                          _iconForCategory(item.category),
+                          size: 40,
+                          color: AppColors.primary.withValues(alpha: 0.6),
+                        ),
+                      ),
               ),
               Positioned(
                 top: 8,
@@ -843,11 +867,27 @@ class _ListingListItem extends StatelessWidget {
               color: AppColors.primary.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
-              _iconForCategory(item.category),
-              size: 28,
-              color: AppColors.primary.withValues(alpha: 0.6),
-            ),
+            clipBehavior: Clip.antiAlias,
+            child: item.imageUrl.isNotEmpty
+                ? CachedNetworkImage(
+                    imageUrl: item.imageUrl,
+                    fit: BoxFit.cover,
+                    placeholder: (_, _) => Icon(
+                      _iconForCategory(item.category),
+                      size: 28,
+                      color: AppColors.primary.withValues(alpha: 0.6),
+                    ),
+                    errorWidget: (_, _, _) => Icon(
+                      _iconForCategory(item.category),
+                      size: 28,
+                      color: AppColors.primary.withValues(alpha: 0.6),
+                    ),
+                  )
+                : Icon(
+                    _iconForCategory(item.category),
+                    size: 28,
+                    color: AppColors.primary.withValues(alpha: 0.6),
+                  ),
           ),
           const SizedBox(width: 12),
           Expanded(
