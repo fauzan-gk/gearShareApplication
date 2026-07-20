@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RentalRequestScreen extends StatefulWidget {
   final String itemName;
@@ -65,7 +67,12 @@ class _RentalRequestScreenState extends State<RentalRequestScreen> {
     return _endDate!.difference(_startDate!).inDays;
   }
 
-  void _submitRequest() {
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'Select date';
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
+  void _submitRequest() async {
     if (_startDate == null || _endDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select start and end dates')),
@@ -73,23 +80,40 @@ class _RentalRequestScreenState extends State<RentalRequestScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Rental request sent for ${widget.itemName}'),
-        backgroundColor: const Color(0xFF1B2A4A),
-      ),
-    );
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
 
-    Future.delayed(const Duration(seconds: 2), () {
+      await FirebaseFirestore.instance.collection('rentalRequests').add({
+        'itemName': widget.itemName,
+        'itemPrice': widget.itemPrice,
+        'renterId': uid,
+        'startDate': Timestamp.fromDate(_startDate!),
+        'endDate': Timestamp.fromDate(_endDate!),
+        'totalDays': _totalDays,
+        'pickupMethod': _pickupMethod,
+        'message': _messageController.text.trim(),
+        'status': 'pending',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Rental request sent for ${widget.itemName}'),
+          backgroundColor: const Color(0xFF1B2A4A),
+        ),
+      );
+
+      await Future.delayed(const Duration(seconds: 2));
+
       if (mounted) {
         Navigator.popUntil(context, (route) => route.settings.name == '/home');
       }
-    });
-  }
-
-  String _formatDate(DateTime? date) {
-    if (date == null) return 'Select date';
-    return '${date.day}/${date.month}/${date.year}';
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to send request: $e')));
+    }
   }
 
   @override

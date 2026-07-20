@@ -1,299 +1,9 @@
-// import 'package:flutter/material.dart';
-// import '../constants/app_colors.dart';
-// import '../constants/custom_app_bar.dart';
-// import '../constants/app_drawer.dart';
-// import '../constants/custom_bottom_nav.dart';
-
-// class HomeScreen extends StatefulWidget {
-//   const HomeScreen({super.key});
-
-//   @override
-//   State<HomeScreen> createState() => _HomeScreenState();
-// }
-
-// class _HomeScreenState extends State<HomeScreen> {
-//   // Dummy categories for now — will come from Firestore later
-//   final List<String> _categories = [
-//     'Cameras',
-//     'Tools',
-//     'Camping',
-//     'Sports',
-//     'Music',
-//   ];
-
-//   // Dummy items for now — will come from Firestore later
-//   final List<Map<String, String>> _items = [
-//     {'name': 'DSLR Camera', 'price': 'Rs. 800/day'},
-//     {'name': 'Power Drill', 'price': 'Rs. 300/day'},
-//     {'name': 'Camping Tent', 'price': 'Rs. 500/day'},
-//     {'name': 'Mountain Bike', 'price': 'Rs. 400/day'},
-//     {'name': 'Projector', 'price': 'Rs. 700/day'},
-//     {'name': 'Guitar', 'price': 'Rs. 350/day'},
-//   ];
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       backgroundColor: AppColors.background,
-
-//       // Shared AppBar/Drawer/BottomNav — same three components every
-//       // other screen uses now. The old HomeScreen was building its own
-//       // BottomNavigationBar from scratch with duplicated switch-case
-//       // navigation logic instead of reusing CustomBottomNav, which is
-//       // exactly the kind of inconsistency we've been fixing everywhere.
-//       appBar: CustomAppBar(
-//         title: 'GearShare',
-//         actions: [
-//           IconButton(
-//             icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-//             onPressed: () {},
-//           ),
-//         ],
-//       ),
-//       drawer: const AppDrawer(currentRoute: '/home'),
-//       bottomNavigationBar: const CustomBottomNav(currentIndex: 0),
-
-//       body: SingleChildScrollView(
-//         child: Column(
-//           crossAxisAlignment: CrossAxisAlignment.start,
-//           children: [
-//             // ── SEARCH BAR ──────────────────────────────────
-//             // Same floating white card style used on Browse/Category —
-//             // now it's tappable and actually takes you to the real
-//             // search screen, instead of just sitting there doing nothing.
-//             Padding(
-//               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-//               child: InkWell(
-//                 onTap: () => Navigator.pushNamed(context, '/browse-search'),
-//                 borderRadius: BorderRadius.circular(16),
-//                 child: Container(
-//                   padding: const EdgeInsets.symmetric(
-//                     horizontal: 16,
-//                     vertical: 14,
-//                   ),
-//                   decoration: BoxDecoration(
-//                     color: AppColors.surface,
-//                     borderRadius: BorderRadius.circular(16),
-//                     boxShadow: [
-//                       BoxShadow(
-//                         color: AppColors.navy.withOpacity(0.08),
-//                         blurRadius: 20,
-//                         offset: const Offset(0, 8),
-//                       ),
-//                     ],
-//                   ),
-//                   child: Row(
-//                     children: [
-//                       Icon(Icons.search, color: AppColors.textSecondary),
-//                       const SizedBox(width: 10),
-//                       Text(
-//                         'Search equipment...',
-//                         style: TextStyle(
-//                           color: AppColors.textHint,
-//                           fontSize: 14,
-//                         ),
-//                       ),
-//                     ],
-//                   ),
-//                 ),
-//               ),
-//             ),
-
-//             // ── CATEGORIES ───────────────────────────────────
-//             Padding(
-//               padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-//               child: Text(
-//                 'Categories',
-//                 style: TextStyle(
-//                   fontSize: 18,
-//                   fontWeight: FontWeight.w700,
-//                   color: AppColors.textPrimary,
-//                 ),
-//               ),
-//             ),
-//             SizedBox(
-//               height: 40,
-//               child: ListView.builder(
-//                 scrollDirection: Axis.horizontal,
-//                 padding: const EdgeInsets.symmetric(horizontal: 16),
-//                 itemCount: _categories.length,
-//                 itemBuilder: (context, index) {
-//                   final category = _categories[index];
-//                   // Made tappable + wired into the same "Passing Data
-//                   // Between Screens" pattern used on CategoryScreen —
-//                   // tapping a chip here pre-filters the Browse screen.
-//                   return Padding(
-//                     padding: const EdgeInsets.only(right: 10),
-//                     child: GestureDetector(
-//                       onTap: () => Navigator.pushNamed(
-//                         context,
-//                         '/browse-search',
-//                         arguments: {'category': category},
-//                       ),
-//                       child: Container(
-//                         padding: const EdgeInsets.symmetric(
-//                           horizontal: 16,
-//                           vertical: 8,
-//                         ),
-//                         decoration: BoxDecoration(
-//                           color: AppColors.primary.withOpacity(0.1),
-//                           borderRadius: BorderRadius.circular(20),
-//                         ),
-//                         child: Center(
-//                           child: Text(
-//                             category,
-//                             style: TextStyle(
-//                               color: AppColors.primary,
-//                               fontWeight: FontWeight.w600,
-//                               fontSize: 13,
-//                             ),
-//                           ),
-//                         ),
-//                       ),
-//                     ),
-//                   );
-//                 },
-//               ),
-//             ),
-
-//             const SizedBox(height: 24),
-
-//             // ── AVAILABLE ITEMS ──────────────────────────────
-//             Padding(
-//               padding: const EdgeInsets.symmetric(horizontal: 20),
-//               child: Text(
-//                 'Available Near You',
-//                 style: TextStyle(
-//                   fontSize: 18,
-//                   fontWeight: FontWeight.w700,
-//                   color: AppColors.textPrimary,
-//                 ),
-//               ),
-//             ),
-//             const SizedBox(height: 12),
-
-//             // shrinkWrap + NeverScrollableScrollPhysics because the OUTER
-//             // SingleChildScrollView already handles scrolling — same
-//             // pattern used on every other screen with a nested grid.
-//             Padding(
-//               padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-//               child: GridView.builder(
-//                 shrinkWrap: true,
-//                 physics: const NeverScrollableScrollPhysics(),
-//                 itemCount: _items.length,
-//                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-//                   crossAxisCount: 2,
-//                   crossAxisSpacing: 14,
-//                   mainAxisSpacing: 14,
-//                   childAspectRatio: 0.8,
-//                 ),
-//                 itemBuilder: (context, index) {
-//                   final item = _items[index];
-//                   return _HomeItemCard(
-//                     name: item['name']!,
-//                     price: item['price']!,
-//                     onTap: () => Navigator.pushNamed(
-//                       context,
-//                       '/item-detail',
-//                       arguments: {
-//                         'itemName': item['name']!,
-//                         'itemPrice': item['price']!,
-//                       },
-//                     ),
-//                   );
-//                 },
-//               ),
-//             ),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-// }
-
-// // ─────────────────────────────────────────────────────────────
-// // HOME ITEM CARD WIDGET
-// // Extracted into its own widget (instead of an inline Card +
-// // InkWell in the itemBuilder) so the grid's build method stays
-// // readable, and so this card uses the SAME shadow-based container
-// // style as _GearCard on Browse and _ListingCard on My Listings —
-// // NOT Flutter's default Card/elevation, which looked visually
-// // different from the rest of the app.
-// // ─────────────────────────────────────────────────────────────
-// class _HomeItemCard extends StatelessWidget {
-//   final String name;
-//   final String price;
-//   final VoidCallback onTap;
-
-//   const _HomeItemCard({
-//     required this.name,
-//     required this.price,
-//     required this.onTap,
-//   });
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return InkWell(
-//       onTap: onTap,
-//       borderRadius: BorderRadius.circular(16),
-//       child: Container(
-//         padding: const EdgeInsets.all(10),
-//         decoration: BoxDecoration(
-//           color: AppColors.surface,
-//           borderRadius: BorderRadius.circular(16),
-//           boxShadow: [
-//             BoxShadow(
-//               color: AppColors.navy.withOpacity(0.06),
-//               blurRadius: 10,
-//               offset: const Offset(0, 4),
-//             ),
-//           ],
-//         ),
-//         child: Column(
-//           crossAxisAlignment: CrossAxisAlignment.start,
-//           children: [
-//             Expanded(
-//               child: Container(
-//                 width: double.infinity,
-//                 decoration: BoxDecoration(
-//                   color: AppColors.primary.withOpacity(0.08),
-//                   borderRadius: BorderRadius.circular(12),
-//                 ),
-//                 child: Icon(
-//                   Icons.image_outlined,
-//                   color: AppColors.primary.withOpacity(0.5),
-//                   size: 40,
-//                 ),
-//               ),
-//             ),
-//             const SizedBox(height: 8),
-//             Text(
-//               name,
-//               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-//               maxLines: 1,
-//               overflow: TextOverflow.ellipsis,
-//             ),
-//             const SizedBox(height: 3),
-//             Text(
-//               price,
-//               style: const TextStyle(
-//                 color: AppColors.primary,
-//                 fontWeight: FontWeight.w700,
-//                 fontSize: 12,
-//               ),
-//             ),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-// }
-
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/custom_app_bar.dart';
 import '../constants/app_drawer.dart';
 import '../constants/custom_bottom_nav.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -303,7 +13,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Dummy categories for now — will come from Firestore later
   final List<Map<String, dynamic>> _categories = [
     {'name': 'Cameras', 'icon': Icons.camera_alt_outlined, 'color': 0xFF4A90D9},
     {'name': 'Tools', 'icon': Icons.construction_outlined, 'color': 0xFFE67E22},
@@ -314,45 +23,6 @@ class _HomeScreenState extends State<HomeScreen> {
       'color': 0xFFE74C3C,
     },
     {'name': 'Music', 'icon': Icons.music_note_outlined, 'color': 0xFF8E44AD},
-  ];
-
-  // Dummy items for now — will come from Firestore later
-  final List<Map<String, dynamic>> _featuredItems = [
-    {
-      'name': 'DSLR Camera',
-      'price': 'Rs. 800/day',
-      'owner': 'Ahmed',
-      'rating': 4.9,
-    },
-    {
-      'name': 'Power Drill',
-      'price': 'Rs. 300/day',
-      'owner': 'Sara',
-      'rating': 4.7,
-    },
-    {
-      'name': 'Camping Tent',
-      'price': 'Rs. 500/day',
-      'owner': 'Ali',
-      'rating': 4.8,
-    },
-  ];
-
-  final List<Map<String, dynamic>> _recentItems = [
-    {
-      'name': 'Mountain Bike',
-      'price': 'Rs. 400/day',
-      'owner': 'Usman',
-      'rating': 4.5,
-    },
-    {
-      'name': 'Projector',
-      'price': 'Rs. 700/day',
-      'owner': 'Fatima',
-      'rating': 4.6,
-    },
-    {'name': 'Guitar', 'price': 'Rs. 350/day', 'owner': 'Hira', 'rating': 4.8},
-    {'name': 'Drone', 'price': 'Rs. 1200/day', 'owner': 'Omar', 'rating': 4.9},
   ];
 
   @override
@@ -429,7 +99,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 child: Stack(
                   children: [
-                    // Decorative background elements
                     Positioned(
                       right: -10,
                       bottom: -10,
@@ -525,7 +194,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // ── CATEGORIES (Horizontal Scroll with Icons) ──
+            // ── CATEGORIES ───────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
               child: Row(
@@ -636,31 +305,63 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
+
+            // Featured Items StreamBuilder
             SizedBox(
               height: 200,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: _featuredItems.length,
-                itemBuilder: (context, index) {
-                  final item = _featuredItems[index];
-                  return Container(
-                    width: 160,
-                    margin: const EdgeInsets.only(right: 12),
-                    child: _FeaturedItemCard(
-                      name: item['name'] as String,
-                      price: item['price'] as String,
-                      owner: item['owner'] as String,
-                      rating: item['rating'] as double,
-                      onTap: () => Navigator.pushNamed(
-                        context,
-                        '/item-detail',
-                        arguments: {
-                          'itemName': item['name'] as String,
-                          'itemPrice': item['price'] as String,
-                        },
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('listings')
+                    .where('isAvailable', isEqualTo: true)
+                    .where('isFeatured', isEqualTo: true)
+                    .orderBy('createdAt', descending: true)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
                       ),
-                    ),
+                    );
+                  }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'No featured items yet',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    );
+                  }
+                  final docs = snapshot.data!.docs;
+                  return ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: docs.length,
+                    itemBuilder: (context, index) {
+                      final data = docs[index].data() as Map<String, dynamic>;
+                      final name = data['name'] ?? 'Unknown';
+                      final price = 'Rs. ${data['price']?.toInt() ?? 0}/day';
+                      final owner = data['ownerName'] ?? 'Unknown';
+                      final rating = (data['rating'] ?? 0.0).toDouble();
+                      return Container(
+                        width: 160,
+                        margin: const EdgeInsets.only(right: 12),
+                        child: _FeaturedItemCard(
+                          name: name,
+                          price: price,
+                          owner: owner,
+                          rating: rating,
+                          onTap: () => Navigator.pushNamed(
+                            context,
+                            '/item-detail',
+                            arguments: {
+                              'itemName': name.toString(),
+                              'itemPrice': price.toString(),
+                            },
+                          ),
+                        ),
+                      );
+                    },
                   );
                 },
               ),
@@ -668,7 +369,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
             const SizedBox(height: 20),
 
-            // ── RECENTLY ADDED (Vertical List) ──────────────
+            // ── RECENTLY ADDED ───────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
               child: Row(
@@ -696,26 +397,63 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-              itemCount: _recentItems.length,
-              itemBuilder: (context, index) {
-                final item = _recentItems[index];
-                return _RecentItemCard(
-                  name: item['name'] as String,
-                  price: item['price'] as String,
-                  owner: item['owner'] as String,
-                  rating: item['rating'] as double,
-                  onTap: () => Navigator.pushNamed(
-                    context,
-                    '/item-detail',
-                    arguments: {
-                      'itemName': item['name'] as String,
-                      'itemPrice': item['price'] as String,
-                    },
-                  ),
+
+            // Recently Added StreamBuilder
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('listings')
+                  .orderBy('createdAt', descending: true)
+                  .limit(10)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32),
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  );
+                }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32),
+                      child: Text(
+                        'No listings yet',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ),
+                  );
+                }
+                final docs = snapshot.data!.docs;
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                  itemCount: docs.length,
+                  itemBuilder: (context, index) {
+                    final data = docs[index].data() as Map<String, dynamic>;
+                    final name = data['name'] ?? 'Unknown';
+                    final price = 'Rs. ${data['price']?.toInt() ?? 0}/day';
+                    final owner = data['ownerName'] ?? 'Unknown';
+                    final rating = (data['rating'] ?? 0.0).toDouble();
+                    return _RecentItemCard(
+                      name: name,
+                      price: price,
+                      owner: owner,
+                      rating: rating,
+                      onTap: () => Navigator.pushNamed(
+                        context,
+                        '/item-detail',
+                        arguments: {
+                          'itemName': name.toString(),
+                          'itemPrice': price.toString(),
+                        },
+                      ),
+                    );
+                  },
                 );
               },
             ),
@@ -726,7 +464,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// ─── FEATURED ITEM CARD (Horizontal) ────────────────────────
+// ─── FEATURED ITEM CARD ──────────────────────────────────────
 class _FeaturedItemCard extends StatelessWidget {
   final String name;
   final String price;
@@ -857,7 +595,7 @@ class _FeaturedItemCard extends StatelessWidget {
   }
 }
 
-// ─── RECENT ITEM CARD (List Style) ──────────────────────────
+// ─── RECENT ITEM CARD ────────────────────────────────────────
 class _RecentItemCard extends StatelessWidget {
   final String name;
   final String price;

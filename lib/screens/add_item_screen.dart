@@ -3,6 +3,8 @@ import '../constants/app_colors.dart';
 import '../constants/custom_app_bar.dart';
 import '../constants/app_drawer.dart';
 import '../constants/custom_bottom_nav.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 // ─────────────────────────────────────────────────────────────
 // ADD ITEM SCREEN
@@ -79,39 +81,58 @@ class _AddItemScreenState extends State<AddItemScreen> {
     super.dispose();
   }
 
-  void _submitForm() {
-    // .validate() runs every field's `validator` function at once.
-    // Returns true ONLY if every single field passed its check.
+  void _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      // TODO Phase 3: push this data to Firestore instead of a SnackBar
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle_rounded, color: Colors.white),
-              const SizedBox(width: 10),
-              const Text('Listing published successfully!'),
-            ],
-          ),
-          backgroundColor: AppColors.success,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      try {
+        final uid = FirebaseAuth.instance.currentUser?.uid;
+        if (uid == null) return;
 
-      // Optionally clear the form after submission
-      _nameController.clear();
-      _priceController.clear();
-      _descriptionController.clear();
-      _locationController.clear();
-      setState(() {
-        _selectedCategory = null;
-        _isAvailable = true;
-        _condition = 'Good';
-      });
+        await FirebaseFirestore.instance.collection('listings').add({
+          'name': _nameController.text.trim(),
+          'category': _selectedCategory,
+          'condition': _condition,
+          'description': _descriptionController.text.trim(),
+          'price': double.parse(_priceController.text.trim()),
+          'location': _locationController.text.trim(),
+          'isAvailable': _isAvailable,
+          'isFeatured': _isFeatured,
+          'ownerId': uid,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white),
+                const SizedBox(width: 10),
+                const Text('Listing published successfully!'),
+              ],
+            ),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+
+        // Clear form
+        _nameController.clear();
+        _priceController.clear();
+        _descriptionController.clear();
+        _locationController.clear();
+        setState(() {
+          _selectedCategory = null;
+          _isAvailable = true;
+          _condition = 'Good';
+        });
+      } catch (e) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to publish: $e')));
+      }
     }
   }
 
@@ -600,32 +621,35 @@ class _AddItemScreenState extends State<AddItemScreen> {
                               : AppColors.warning.withValues(alpha: 0.2),
                         ),
                       ),
-                      child: SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text(
-                          'Available for rent now',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text(
+                            'Available for rent now',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
                           ),
+                          subtitle: Text(
+                            _isAvailable
+                                ? 'Your item will be visible to renters'
+                                : 'Your item will be hidden from renters',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          value: _isAvailable,
+                          activeThumbColor: AppColors.success,
+                          activeTrackColor: AppColors.success.withValues(
+                            alpha: 0.3,
+                          ),
+                          inactiveThumbColor: AppColors.warning,
+                          inactiveTrackColor: AppColors.warning.withValues(
+                            alpha: 0.3,
+                          ),
+                          onChanged: (bool value) =>
+                              setState(() => _isAvailable = value),
                         ),
-                        subtitle: Text(
-                          _isAvailable
-                              ? 'Your item will be visible to renters'
-                              : 'Your item will be hidden from renters',
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        value: _isAvailable,
-                        activeThumbColor: AppColors.success,
-                        activeTrackColor: AppColors.success.withValues(
-                          alpha: 0.3,
-                        ),
-                        inactiveThumbColor: AppColors.warning,
-                        inactiveTrackColor: AppColors.warning.withValues(
-                          alpha: 0.3,
-                        ),
-                        onChanged: (bool value) =>
-                            setState(() => _isAvailable = value),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -645,25 +669,28 @@ class _AddItemScreenState extends State<AddItemScreen> {
                           color: Colors.amber.withValues(alpha: 0.2),
                         ),
                       ),
-                      child: SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text(
-                          '⭐ Feature this listing',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                            color: Colors.amber,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text(
+                            '⭐ Feature this listing',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              color: Colors.amber,
+                            ),
                           ),
+                          subtitle: const Text(
+                            'Get more visibility for a small fee',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                          value: _isFeatured,
+                          activeThumbColor: Colors.amber,
+                          activeTrackColor: Colors.amber.withValues(alpha: 0.3),
+                          onChanged: (bool value) =>
+                              setState(() => _isFeatured = value),
                         ),
-                        subtitle: const Text(
-                          'Get more visibility for a small fee',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                        value: _isFeatured,
-                        activeThumbColor: Colors.amber,
-                        activeTrackColor: Colors.amber.withValues(alpha: 0.3),
-                        onChanged: (bool value) =>
-                            setState(() => _isFeatured = value),
                       ),
                     ),
                   ],

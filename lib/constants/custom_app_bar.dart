@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
 
-/// Reusable AppBar used on every screen so the top bar always looks the same.
-/// Implements PreferredSizeWidget because Scaffold's `appBar:` property
-/// requires a widget that reports its own height (kToolbarHeight).
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final List<Widget>? actions;
+  final PreferredSizeWidget? bottom;
 
-  const CustomAppBar({super.key, required this.title, this.actions});
+  const CustomAppBar({
+    super.key,
+    required this.title,
+    this.actions,
+    this.bottom,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -23,16 +26,15 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
       ),
       backgroundColor: AppColors.navy,
-      elevation:
-          0, // flat look is more "professional app" than a hard drop shadow
+      elevation: 0,
       centerTitle: true,
-      // Scaffold auto-generates the hamburger icon on the left WHEN the
-      // Scaffold has a `drawer:` set — we don't build that button manually.
       actions: actions,
       iconTheme: const IconThemeData(color: Colors.white),
+      bottom: bottom,
     );
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+  Size get preferredSize =>
+      Size.fromHeight(kToolbarHeight + (bottom?.preferredSize.height ?? 0));
 }
