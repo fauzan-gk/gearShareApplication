@@ -51,10 +51,10 @@ class ImageService {
     String folder,
   ) async {
     final path = _filePath(uid, folder);
-    await _supabase.storage.from(_bucket).uploadBinary(
-      path,
-      image.bytes,
-    ).timeout(const Duration(seconds: 30));
+    await _supabase.storage
+        .from(_bucket)
+        .uploadBinary(path, image.bytes)
+        .timeout(const Duration(seconds: 30));
     final url = _supabase.storage.from(_bucket).getPublicUrl(path);
     return url;
   }

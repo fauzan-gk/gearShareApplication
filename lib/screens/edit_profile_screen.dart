@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../services/location_service.dart';
 
 class UserProfile {
   final String name;
-  final String location;
+  final String country;
+  final String city;
   final String email;
   final String phone;
   final String bio;
@@ -15,7 +17,8 @@ class UserProfile {
 
   UserProfile({
     required this.name,
-    required this.location,
+    required this.country,
+    required this.city,
     required this.email,
     required this.phone,
     required this.bio,
@@ -28,7 +31,8 @@ class UserProfile {
     final data = doc.data() as Map<String, dynamic>? ?? {};
     return UserProfile(
       name: data['name'] ?? '',
-      location: data['location'] ?? '',
+      country: data['country'] ?? '',
+      city: data['city'] ?? '',
       email: data['email'] ?? '',
       phone: data['phone'] ?? '',
       bio: data['bio'] ?? '',
@@ -40,7 +44,8 @@ class UserProfile {
 
   Map<String, dynamic> toMap() => {
     'name': name,
-    'location': location,
+    'country': country,
+    'city': city,
     'email': email,
     'phone': phone,
     'bio': bio,
@@ -63,8 +68,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
-  final TextEditingController locationController = TextEditingController();
+  final TextEditingController cityController = TextEditingController();
   final TextEditingController bioController = TextEditingController();
+
+  String _selectedCountry = '';
+  List<String> _countries = [];
+  bool _loadingCountries = true;
 
   bool notifications = true;
   bool publicProfile = true;
@@ -74,7 +83,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
+    _loadCountries();
     _loadProfile();
+  }
+
+  Future<void> _loadCountries() async {
+    final list = await LocationService.fetchCountries();
+    if (!mounted) return;
+    setState(() {
+      _countries = list;
+      _loadingCountries = false;
+    });
   }
 
   Future<void> _loadProfile() async {
@@ -95,7 +114,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         nameController.text = profile.name;
         emailController.text = profile.email;
         phoneController.text = profile.phone;
-        locationController.text = profile.location;
+        _selectedCountry = profile.country;
+        cityController.text = profile.city;
         bioController.text = profile.bio;
         notifications = profile.notifications;
         publicProfile = profile.publicProfile;
@@ -132,10 +152,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           phoneController,
                         ),
                         const SizedBox(height: 18),
+                        _countryDropdown(),
+                        const SizedBox(height: 18),
                         _textField(
-                          "Location",
-                          Icons.location_on_outlined,
-                          locationController,
+                          "City",
+                          Icons.location_city_outlined,
+                          cityController,
                         ),
                         const SizedBox(height: 18),
                         _textField(
@@ -212,13 +234,98 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
+  Widget _countryDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Country',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+            color: AppColors.textPrimaryFor(context),
+          ),
+        ),
+        const SizedBox(height: 8),
+        InkWell(
+          onTap: _loadingCountries ? null : () => _pickCountry(),
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceFor(context),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.navyFor(context).withValues(alpha: 0.06),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.public_outlined, color: AppColors.primary, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _selectedCountry.isNotEmpty
+                        ? _selectedCountry
+                        : _loadingCountries
+                            ? 'Loading...'
+                            : 'Select country',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: _selectedCountry.isNotEmpty
+                          ? AppColors.textPrimaryFor(context)
+                          : AppColors.textHintFor(context),
+                    ),
+                  ),
+                ),
+                Icon(Icons.arrow_drop_down, color: AppColors.textHintFor(context)),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _pickCountry() async {
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Select Country'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 400),
+            child: ListView(
+              shrinkWrap: true,
+              children: _countries.map((c) => ListTile(
+                dense: true,
+                title: Text(c, style: const TextStyle(fontSize: 14)),
+                onTap: () => Navigator.pop(ctx, c),
+              )).toList(),
+            ),
+          ),
+        ),
+        contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 4),
+      ),
+    );
+    if (result != null && mounted) {
+      setState(() => _selectedCountry = result);
+    }
+  }
+
   Future<void> _saveProfile() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
     final profile = UserProfile(
       name: nameController.text,
-      location: locationController.text,
+      country: _selectedCountry,
+      city: cityController.text,
       email: emailController.text,
       phone: phoneController.text,
       bio: bioController.text,
@@ -477,7 +584,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     nameController.dispose();
     emailController.dispose();
     phoneController.dispose();
-    locationController.dispose();
+    cityController.dispose();
     bioController.dispose();
     super.dispose();
   }

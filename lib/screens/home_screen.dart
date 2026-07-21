@@ -445,6 +445,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       final rating = (data['rating'] ?? 0.0).toDouble();
                       final imageUrls = data['imageUrls'] as List<dynamic>? ?? [];
                       final imageUrl = imageUrls.isNotEmpty ? imageUrls.first.toString() : '';
+                      final country = data['country'] ?? '';
                       return Container(
                         width: 160,
                         margin: const EdgeInsets.only(right: 12),
@@ -454,6 +455,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           owner: owner,
                           rating: rating,
                           imageUrl: imageUrl,
+                          country: country,
                           onTap: () => Navigator.pushNamed(
                             context,
                             '/item-detail',
@@ -543,12 +545,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     final rating = (data['rating'] ?? 0.0).toDouble();
                     final imageUrls = data['imageUrls'] as List<dynamic>? ?? [];
                     final imageUrl = imageUrls.isNotEmpty ? imageUrls.first.toString() : '';
+                    final country = data['country'] ?? '';
                     return _RecentItemCard(
                       name: name,
                       price: price,
                       owner: owner,
                       rating: rating,
                       imageUrl: imageUrl,
+                      country: country,
                       onTap: () => Navigator.pushNamed(
                         context,
                         '/item-detail',
@@ -575,6 +579,7 @@ class _FeaturedItemCard extends StatelessWidget {
   final String owner;
   final double rating;
   final String imageUrl;
+  final String country;
   final VoidCallback onTap;
 
   const _FeaturedItemCard({
@@ -583,6 +588,7 @@ class _FeaturedItemCard extends StatelessWidget {
     required this.owner,
     required this.rating,
     required this.imageUrl,
+    required this.country,
     required this.onTap,
   });
 
@@ -714,6 +720,26 @@ class _FeaturedItemCard extends StatelessWidget {
                       fontSize: 13,
                     ),
                   ),
+                  if (country.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.public,
+                          size: 10,
+                          color: AppColors.textHintFor(context),
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          country,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: AppColors.textHintFor(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -731,6 +757,7 @@ class _RecentItemCard extends StatelessWidget {
   final String owner;
   final double rating;
   final String imageUrl;
+  final String country;
   final VoidCallback onTap;
 
   const _RecentItemCard({
@@ -739,6 +766,7 @@ class _RecentItemCard extends StatelessWidget {
     required this.owner,
     required this.rating,
     required this.imageUrl,
+    required this.country,
     required this.onTap,
   });
 
@@ -845,6 +873,26 @@ class _RecentItemCard extends StatelessWidget {
                       ),
                     ],
                   ),
+                  if (country.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.public,
+                          size: 11,
+                          color: AppColors.textHintFor(context),
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          country,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textHintFor(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),

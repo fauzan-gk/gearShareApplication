@@ -16,6 +16,8 @@ class GearItem {
   final double rating;
   final bool isAvailable;
   final String location;
+  final String country;
+  final String city;
   final String imageUrl;
 
   const GearItem({
@@ -27,10 +29,11 @@ class GearItem {
     required this.rating,
     required this.isAvailable,
     required this.location,
+    required this.country,
+    required this.city,
     required this.imageUrl,
   });
 
-  // Convert Firestore document to GearItem
   factory GearItem.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return GearItem(
@@ -42,6 +45,8 @@ class GearItem {
       rating: (data['rating'] ?? 0.0).toDouble(),
       isAvailable: data['isAvailable'] ?? true,
       location: data['location'] ?? 'Unknown',
+      country: data['country'] ?? '',
+      city: data['city'] ?? '',
       imageUrl: (data['imageUrls'] is List && (data['imageUrls'] as List).isNotEmpty) ? (data['imageUrls'] as List).first.toString() : '',
     );
   }
@@ -92,11 +97,14 @@ class _BrowseSearchScreenState extends State<BrowseSearchScreen> {
     var filtered = items.where((item) {
       final matchesFilter =
           _selectedFilter == 'All' || item.category == _selectedFilter;
+      final q = _searchQuery.toLowerCase();
       final matchesSearch =
           _searchQuery.isEmpty ||
-          item.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          item.owner.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          item.category.toLowerCase().contains(_searchQuery.toLowerCase());
+          item.name.toLowerCase().contains(q) ||
+          item.owner.toLowerCase().contains(q) ||
+          item.category.toLowerCase().contains(q) ||
+          item.country.toLowerCase().contains(q) ||
+          item.city.toLowerCase().contains(q);
       return matchesFilter && matchesSearch;
     }).toList();
 
@@ -680,7 +688,9 @@ placeholder: (_, _) => Center(
                       ),
                       const SizedBox(width: 2),
                       Text(
-                        item.location,
+                        item.city.isNotEmpty || item.country.isNotEmpty
+                            ? '${item.city}${item.city.isNotEmpty && item.country.isNotEmpty ? ', ' : ''}${item.country}'
+                            : item.location,
                         style: TextStyle(
                           fontSize: 11,
                           color: AppColors.textSecondaryFor(context),

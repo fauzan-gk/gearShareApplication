@@ -7,6 +7,7 @@ import '../constants/custom_bottom_nav.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/image_service.dart';
+import '../services/location_service.dart';
 
 // ─────────────────────────────────────────────────────────────
 // ADD ITEM SCREEN
@@ -33,7 +34,11 @@ class _AddItemScreenState extends State<AddItemScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _locationController = TextEditingController();
+  final TextEditingController _cityController = TextEditingController();
+
+  String _selectedCountry = '';
+  List<String> _countries = [];
+  bool _loadingCountries = true;
 
   // Simple fields that don't need a controller — just a variable that
   // setState() updates whenever the user picks something.
@@ -73,16 +78,55 @@ class _AddItemScreenState extends State<AddItemScreen> {
     'Other': Icons.category_outlined,
   };
 
-  // dispose() runs when this screen is removed from the widget tree.
-  // Controllers hold onto memory/resources, so we MUST clean them up here
-  // or we get a memory leak — this is required for every controller we create.
+  @override
+  void initState() {
+    super.initState();
+    _loadCountries();
+  }
+
+  Future<void> _loadCountries() async {
+    final list = await LocationService.fetchCountries();
+    if (!mounted) return;
+    setState(() {
+      _countries = list;
+      _loadingCountries = false;
+    });
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
     _priceController.dispose();
     _descriptionController.dispose();
-    _locationController.dispose();
+    _cityController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickCountry() async {
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Select Country'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 400),
+            child: ListView(
+              shrinkWrap: true,
+              children: _countries.map((c) => ListTile(
+                dense: true,
+                title: Text(c, style: const TextStyle(fontSize: 14)),
+                onTap: () => Navigator.pop(ctx, c),
+              )).toList(),
+            ),
+          ),
+        ),
+        contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 4),
+      ),
+    );
+    if (result != null && mounted) {
+      setState(() => _selectedCountry = result);
+    }
   }
 
   Future<void> _pickImages() async {
@@ -100,6 +144,13 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
   void _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_selectedCountry.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a country')),
+      );
+      return;
+    }
 
     setState(() => _isUploading = true);
     try {
@@ -135,7 +186,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
         'condition': _condition,
         'description': _descriptionController.text.trim(),
         'price': double.parse(_priceController.text.trim()),
-        'location': _locationController.text.trim(),
+        'country': _selectedCountry,
+        'city': _cityController.text.trim(),
         'isAvailable': _isAvailable,
         'isFeatured': _isFeatured,
         'ownerId': uid,
@@ -167,7 +219,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
       _nameController.clear();
       _priceController.clear();
       _descriptionController.clear();
-      _locationController.clear();
+      _cityController.clear();
       setState(() {
         _selectedCategory = null;
         _isAvailable = true;
@@ -586,16 +638,53 @@ class _AddItemScreenState extends State<AddItemScreen> {
                     ),
                     const SizedBox(height: 14),
 
-                    // Location field
+                    // Country picker
+                    InkWell(
+                      onTap: _loadingCountries ? null : () => _pickCountry(),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey[300]!, width: 1),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.public_outlined, color: AppColors.primary, size: 20),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                _selectedCountry.isNotEmpty
+                                    ? _selectedCountry
+                                    : _loadingCountries
+                                        ? 'Loading...'
+                                        : 'Select country',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: _selectedCountry.isNotEmpty
+                                      ? const Color(0xFF1B2A4A)
+                                      : Colors.grey,
+                                ),
+                              ),
+                            ),
+                            const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // City field
                     TextFormField(
-                      controller: _locationController,
+                      controller: _cityController,
                       decoration: _buildInputDecoration(
-                        'Location',
-                        Icons.location_on_outlined,
+                        'City',
+                        Icons.location_city_outlined,
                       ),
                       validator: (value) =>
                           value == null || value.trim().isEmpty
-                          ? 'Please enter a location'
+                          ? 'Please enter a city'
                           : null,
                     ),
                     const SizedBox(height: 14),
@@ -1048,9 +1137,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
               const SizedBox(width: 16),
               _buildSummaryItem(
                 Icons.location_on_rounded,
-                _locationController.text.isEmpty
-                    ? 'No location'
-                    : _locationController.text,
+                _cityController.text.isNotEmpty || _selectedCountry.isNotEmpty
+                    ? '${_cityController.text}${_cityController.text.isNotEmpty && _selectedCountry.isNotEmpty ? ', ' : ''}$_selectedCountry'
+                    : 'No location',
                 AppColors.navyFor(context),
               ),
             ],

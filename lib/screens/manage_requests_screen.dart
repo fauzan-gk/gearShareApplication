@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../constants/custom_app_bar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ManageRequestsScreen extends StatefulWidget {
   const ManageRequestsScreen({super.key});
@@ -12,11 +14,13 @@ class ManageRequestsScreen extends StatefulWidget {
 class _ManageRequestsScreenState extends State<ManageRequestsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  String? _uid;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _uid = FirebaseAuth.instance.currentUser?.uid;
   }
 
   @override
@@ -115,8 +119,31 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen>
     }
   }
 
+  List<DocumentSnapshot> _sorted(List<DocumentSnapshot> docs) {
+    final sorted = List<DocumentSnapshot>.from(docs);
+    sorted.sort((a, b) {
+      final aData = a.data() as Map<String, dynamic>;
+      final bData = b.data() as Map<String, dynamic>;
+      final aTime = aData['createdAt'] as Timestamp?;
+      final bTime = bData['createdAt'] as Timestamp?;
+      if (aTime == null && bTime == null) return 0;
+      if (aTime == null) return 1;
+      if (bTime == null) return -1;
+      return bTime.compareTo(aTime);
+    });
+    return sorted;
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_uid == null) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        appBar: CustomAppBar(title: 'Manage Requests'),
+        body: const Center(child: Text('Please log in')),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: CustomAppBar(
@@ -145,12 +172,12 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen>
       body: TabBarView(
         controller: _tabController,
         children: [
-          // ── PENDING TAB ──────────────────────────────────
+          // ── PENDING TAB (only owner sees incoming requests) ──
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('rentalRequests')
+                .where('ownerId', isEqualTo: _uid)
                 .where('status', isEqualTo: 'pending')
-                .orderBy('createdAt', descending: true)
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -159,14 +186,21 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen>
                 );
               }
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return const Center(
-                  child: Text(
-                    'No pending requests',
-                    style: TextStyle(color: Colors.grey),
+                return Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.inbox_outlined, size: 48, color: Colors.grey[300]),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'No pending requests',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ],
                   ),
                 );
               }
-              final docs = snapshot.data!.docs;
+              final docs = _sorted(snapshot.data!.docs);
               return ListView.builder(
                 padding: const EdgeInsets.all(16),
                 itemCount: docs.length,
@@ -203,6 +237,13 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen>
                                       data['itemName'] ?? 'Unknown Item',
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Text(
+                                      data['renterName'] ?? '',
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 13,
                                       ),
                                     ),
                                     Text(
@@ -293,28 +334,31 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen>
             },
           ),
 
-          // ── HISTORY TAB ──────────────────────────────────
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('rentalRequests')
-                .where('status', whereIn: ['approved', 'rejected'])
-                .orderBy('createdAt', descending: true)
-                .snapshots(),
+          // ── HISTORY TAB (owner + renter see their processed requests) ──
+          FutureBuilder<List<DocumentSnapshot>>(
+            future: _fetchHistory(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(
                   child: CircularProgressIndicator(color: Color(0xFFF4820A)),
                 );
               }
-              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return const Center(
-                  child: Text(
-                    'No history yet',
-                    style: TextStyle(color: Colors.grey),
+              final docs = snapshot.data ?? [];
+              if (docs.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.history, size: 48, color: Colors.grey[300]),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'No history yet',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ],
                   ),
                 );
               }
-              final docs = snapshot.data!.docs;
               return ListView.builder(
                 padding: const EdgeInsets.all(16),
                 itemCount: docs.length,
@@ -369,5 +413,34 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen>
         ],
       ),
     );
+  }
+
+  Future<List<DocumentSnapshot>> _fetchHistory() async {
+    final uid = _uid;
+    if (uid == null) return [];
+
+    final results = await Future.wait([
+      FirebaseFirestore.instance
+          .collection('rentalRequests')
+          .where('ownerId', isEqualTo: uid)
+          .where('status', whereIn: ['approved', 'rejected'])
+          .get(),
+      FirebaseFirestore.instance
+          .collection('rentalRequests')
+          .where('renterId', isEqualTo: uid)
+          .where('status', whereIn: ['approved', 'rejected'])
+          .get(),
+    ]);
+
+    final seenIds = <String>{};
+    final merged = <DocumentSnapshot>[];
+    for (final snap in results) {
+      for (final doc in snap.docs) {
+        if (seenIds.add(doc.id)) {
+          merged.add(doc);
+        }
+      }
+    }
+    return _sorted(merged);
   }
 }

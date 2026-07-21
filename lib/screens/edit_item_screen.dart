@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../constants/app_colors.dart';
 import '../constants/custom_app_bar.dart';
 import '../services/image_service.dart';
+import '../services/location_service.dart';
 
 // ─────────────────────────────────────────────────────────────
 // EDIT ITEM SCREEN
@@ -34,7 +35,11 @@ class _EditItemScreenState extends State<EditItemScreen> {
   late final TextEditingController _nameController;
   late final TextEditingController _priceController;
   late final TextEditingController _descriptionController;
-  late final TextEditingController _locationController;
+  late final TextEditingController _cityController;
+
+  String _selectedCountry = '';
+  List<String> _countries = [];
+  bool _loadingCountries = true;
 
   // ── STATE VARIABLES ──────────────────────────────────────
   String? _selectedCategory = 'Cameras';
@@ -86,8 +91,18 @@ class _EditItemScreenState extends State<EditItemScreen> {
     _nameController = TextEditingController();
     _priceController = TextEditingController();
     _descriptionController = TextEditingController();
-    _locationController = TextEditingController();
+    _cityController = TextEditingController();
+    _loadCountries();
     _loadListing();
+  }
+
+  Future<void> _loadCountries() async {
+    final list = await LocationService.fetchCountries();
+    if (!mounted) return;
+    setState(() {
+      _countries = list;
+      _loadingCountries = false;
+    });
   }
 
   Future<void> _loadListing() async {
@@ -110,7 +125,8 @@ class _EditItemScreenState extends State<EditItemScreen> {
       _nameController.text = data['name'] ?? '';
       _priceController.text = (data['price'] ?? 0).toString();
       _descriptionController.text = data['description'] ?? '';
-      _locationController.text = data['location'] ?? '';
+      _selectedCountry = data['country'] ?? '';
+      _cityController.text = data['city'] ?? '';
       _selectedCategory = data['category'] ?? 'Cameras';
       _availability = data['isAvailable'] == true ? 'Available' : 'Rented';
       _condition = data['condition'] ?? 'Good';
@@ -136,8 +152,35 @@ class _EditItemScreenState extends State<EditItemScreen> {
     _nameController.dispose();
     _priceController.dispose();
     _descriptionController.dispose();
-    _locationController.dispose();
+    _cityController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickCountry() async {
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Select Country'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 400),
+            child: ListView(
+              shrinkWrap: true,
+              children: _countries.map((c) => ListTile(
+                dense: true,
+                title: Text(c, style: const TextStyle(fontSize: 14)),
+                onTap: () => Navigator.pop(ctx, c),
+              )).toList(),
+            ),
+          ),
+        ),
+        contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 4),
+      ),
+    );
+    if (result != null && mounted) {
+      setState(() => _selectedCountry = result);
+    }
   }
 
   Future<void> _pickNewImages() async {
@@ -164,6 +207,13 @@ class _EditItemScreenState extends State<EditItemScreen> {
   // ─── SAVE CHANGES METHOD ────────────────────────────────
   Future<void> _saveChanges() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_selectedCountry.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a country')),
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
 
@@ -195,7 +245,8 @@ class _EditItemScreenState extends State<EditItemScreen> {
         'category': _selectedCategory,
         'isAvailable': _availability == 'Available',
         'description': _descriptionController.text.trim(),
-        'location': _locationController.text.trim(),
+        'country': _selectedCountry,
+        'city': _cityController.text.trim(),
         'condition': _condition,
         'isFeatured': _isFeatured,
         'imageUrls': allImageUrls,
@@ -565,16 +616,53 @@ class _EditItemScreenState extends State<EditItemScreen> {
                           ),
                           const SizedBox(height: 14),
 
-                          // Location field
+                          // Country picker
+                          InkWell(
+                            onTap: _loadingCountries ? null : () => _pickCountry(),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[50],
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey[300]!, width: 1),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.public_outlined, color: AppColors.primary, size: 20),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      _selectedCountry.isNotEmpty
+                                          ? _selectedCountry
+                                          : _loadingCountries
+                                              ? 'Loading...'
+                                              : 'Select country',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        color: _selectedCountry.isNotEmpty
+                                            ? const Color(0xFF1B2A4A)
+                                            : Colors.grey,
+                                      ),
+                                    ),
+                                  ),
+                                  const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+
+                          // City field
                           TextFormField(
-                            controller: _locationController,
+                            controller: _cityController,
                             decoration: _buildInputDecoration(
-                              'Location',
-                              Icons.location_on_outlined,
+                              'City',
+                              Icons.location_city_outlined,
                             ),
                             validator: (value) =>
                                 value == null || value.trim().isEmpty
-                                ? 'Please enter a location'
+                                ? 'Please enter a city'
                                 : null,
                           ),
                           const SizedBox(height: 14),
@@ -902,9 +990,9 @@ class _EditItemScreenState extends State<EditItemScreen> {
               const SizedBox(width: 16),
               _buildSummaryItem(
                 Icons.location_on_rounded,
-                _locationController.text.isEmpty
-                    ? 'No location'
-                    : _locationController.text,
+                _cityController.text.isNotEmpty || _selectedCountry.isNotEmpty
+                    ? '${_cityController.text}${_cityController.text.isNotEmpty && _selectedCountry.isNotEmpty ? ', ' : ''}$_selectedCountry'
+                    : 'No location',
                 AppColors.navyFor(context),
               ),
             ],

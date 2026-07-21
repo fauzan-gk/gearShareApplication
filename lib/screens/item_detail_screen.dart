@@ -27,6 +27,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
   List<String> _imageUrls = [];
   int _currentImageIndex = 0;
   String _itemLocation = '';
+  String _itemCountry = '';
+  String _itemCity = '';
   String _ownerName = '';
   String _ownerId = '';
   bool _isLoading = true;
@@ -67,6 +69,8 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
             final single = data['imageUrl'] ?? data['image'] ?? '';
             _imageUrls = single.toString().isNotEmpty ? [single.toString()] : [];
           }
+          _itemCountry = data['country'] ?? '';
+          _itemCity = data['city'] ?? '';
           _itemLocation = data['location'] ?? 'Unknown';
           _ownerName = data['ownerName'] ?? 'Unknown';
           _ownerId = data['ownerId'] ?? '';
@@ -88,13 +92,14 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
           .collection('reviews')
           .orderBy('timestamp', descending: true)
           .get();
+      final reviews = snapshot.docs.map((doc) => {
+            'name': doc['userName'] ?? 'Anonymous',
+            'rating': doc['rating'] ?? 5,
+            'date': _formatTimestamp(doc['timestamp']),
+            'comment': doc['comment'] ?? '',
+          }).toList();
       setState(() {
-        _reviews = snapshot.docs.map((doc) => {
-              'name': doc['userName'] ?? 'Anonymous',
-              'rating': doc['rating'] ?? 5,
-              'date': _formatTimestamp(doc['timestamp']),
-              'comment': doc['comment'] ?? '',
-            }).toList();
+        _reviews = reviews;
       });
     } catch (e) {
       // Reviews are optional; silently fail
@@ -397,7 +402,9 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            _itemLocation,
+                            _itemCity.isNotEmpty || _itemCountry.isNotEmpty
+                                ? '$_itemCity${_itemCity.isNotEmpty && _itemCountry.isNotEmpty ? ', ' : ''}$_itemCountry'
+                                : _itemLocation,
                             style: const TextStyle(
                               fontSize: 12,
                               color: Colors.blue,
@@ -412,74 +419,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
 
                 const SizedBox(height: 16),
 
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 12,
-                    horizontal: 16,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[200]!, width: 1),
-                  ),
-                  child: Row(
-                    children: [
-                      ...List.generate(5, (index) {
-                        return const Icon(
-                          Icons.star,
-                          color: Colors.amber,
-                          size: 20,
-                        );
-                      }),
-                      const SizedBox(width: 12),
-                      const Text(
-                        '4.5',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1B2A4A),
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '(${_reviews.length} reviews)',
-                        style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                      ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(
-                            0xFFF4820A,
-                          ).withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.thumb_up_outlined,
-                              size: 14,
-                              color: Color(0xFFF4820A),
-                            ),
-                            SizedBox(width: 4),
-                            Text(
-                              '98%',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFFF4820A),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                _buildRatingBar(),
 
                 const SizedBox(height: 16),
 
@@ -1060,6 +1000,73 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
       ),
     );
   }
+
+  Widget _buildRatingBar() {
+    final count = _reviews.length;
+    final avgRating = count > 0
+        ? _reviews.fold<double>(0, (s, r) => s + (r['rating'] as num).toDouble()) / count
+        : 0.0;
+    final filledStars = avgRating.round();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!, width: 1),
+      ),
+      child: Row(
+        children: [
+          ...List.generate(5, (index) {
+            return Icon(
+              index < filledStars ? Icons.star : Icons.star_border,
+              color: Colors.amber,
+              size: 20,
+            );
+          }),
+          const SizedBox(width: 12),
+          Text(
+            count > 0 ? avgRating.toStringAsFixed(1) : '-',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1B2A4A),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            count > 0 ? '($count reviews)' : 'No reviews yet',
+            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+          ),
+          if (count > 0) ...[
+            const Spacer(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF4820A).withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.thumb_up_outlined, size: 14, color: Color(0xFFF4820A)),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${(avgRating / 5 * 100).round()}%',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFFF4820A),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
 
 class _IncludedItem extends StatelessWidget {
@@ -1084,6 +1091,7 @@ class _IncludedItem extends StatelessWidget {
       ),
     );
   }
+
 }
 
 class _ReviewTile extends StatelessWidget {

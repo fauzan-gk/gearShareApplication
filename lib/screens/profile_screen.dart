@@ -7,6 +7,7 @@ import '../constants/custom_bottom_nav.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/image_service.dart';
+import '../services/location_service.dart';
 
 // ─────────────────────────────────────────────────────────────
 // USER PROFILE MODEL
@@ -16,7 +17,8 @@ import '../services/image_service.dart';
 class UserProfile {
   final String name;
   final String phoneNumber;
-  final String location;
+  final String country;
+  final String city;
   final String avatarUrl;
   final int listings;
   final int rentals;
@@ -25,17 +27,19 @@ class UserProfile {
   const UserProfile({
     required this.name,
     required this.phoneNumber,
-    required this.location,
+    required this.country,
+    required this.city,
     required this.avatarUrl,
     required this.listings,
     required this.rentals,
     required this.rating,
   });
 
-  UserProfile copyWith({String? name, String? phoneNumber, String? location, String? avatarUrl}) => UserProfile(
+  UserProfile copyWith({String? name, String? phoneNumber, String? country, String? city, String? avatarUrl}) => UserProfile(
     name: name ?? this.name,
     phoneNumber: phoneNumber ?? this.phoneNumber,
-    location: location ?? this.location,
+    country: country ?? this.country,
+    city: city ?? this.city,
     avatarUrl: avatarUrl ?? this.avatarUrl,
     listings: listings,
     rentals: rentals,
@@ -59,7 +63,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   UserProfile _profile = const UserProfile(
     name: '',
     phoneNumber: '',
-    location: '',
+    country: '',
+    city: '',
     avatarUrl: '',
     listings: 0,
     rentals: 0,
@@ -78,13 +83,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     String name = '';
     String phoneNumber = '';
-    String location = '';
+    String country = '';
+    String city = '';
     String avatar = '';
     if (doc.exists) {
       final data = doc.data()!;
       name = data['name'] ?? '';
       phoneNumber = data['phone'] ?? '';
-      location = data['location'] ?? '';
+      country = data['country'] ?? '';
+      city = data['city'] ?? '';
       avatar = data['avatarUrl'] ?? '';
     }
 
@@ -122,7 +129,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _profile = UserProfile(
         name: name,
         phoneNumber: phoneNumber,
-        location: location,
+        country: country,
+        city: city,
         avatarUrl: avatar,
         listings: listingsCount,
         rentals: rentalsCount,
@@ -178,7 +186,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _profile = UserProfile(
           name: _profile.name,
           phoneNumber: _profile.phoneNumber,
-          location: _profile.location,
+          country: _profile.country,
+          city: _profile.city,
           avatarUrl: url,
           listings: _profile.listings,
           rentals: _profile.rentals,
@@ -211,7 +220,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         await FirebaseFirestore.instance.collection('users').doc(uid).update({
           'name': updated.name,
           'phone': updated.phoneNumber,
-          'location': updated.location,
+          'country': updated.country,
+          'city': updated.city,
         });
         await FirebaseAuth.instance.currentUser
             ?.updateDisplayName(updated.name);
@@ -451,34 +461,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.location_on_rounded,
-                        color: AppColors.primary,
-                        size: 13,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _profile.location,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
+                if (_profile.city.isNotEmpty || _profile.country.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.location_on_rounded,
+                          color: AppColors.primary,
+                          size: 13,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 4),
+                        Text(
+                          _profile.city.isNotEmpty && _profile.country.isNotEmpty
+                              ? '${_profile.city}, ${_profile.country}'
+                              : _profile.city.isNotEmpty
+                                  ? _profile.city
+                                  : _profile.country,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
                 if (_profile.phoneNumber.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   Container(
@@ -821,21 +836,35 @@ class _EditProfileSheet extends StatefulWidget {
 class _EditProfileSheetState extends State<_EditProfileSheet> {
   late final TextEditingController _nameCtrl;
   late final TextEditingController _phoneCtrl;
-  late final TextEditingController _locCtrl;
+  late final TextEditingController _cityCtrl;
+  String _selectedCountry = '';
+  List<String> _countries = [];
+  bool _loadingCountries = true;
 
   @override
   void initState() {
     super.initState();
     _nameCtrl = TextEditingController(text: widget.profile.name);
     _phoneCtrl = TextEditingController(text: widget.profile.phoneNumber);
-    _locCtrl = TextEditingController(text: widget.profile.location);
+    _cityCtrl = TextEditingController(text: widget.profile.city);
+    _selectedCountry = widget.profile.country;
+    _loadCountries();
+  }
+
+  Future<void> _loadCountries() async {
+    final list = await LocationService.fetchCountries();
+    if (!mounted) return;
+    setState(() {
+      _countries = list;
+      _loadingCountries = false;
+    });
   }
 
   @override
   void dispose() {
     _nameCtrl.dispose();
     _phoneCtrl.dispose();
-    _locCtrl.dispose();
+    _cityCtrl.dispose();
     super.dispose();
   }
 
@@ -855,7 +884,6 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Drag handle
           Container(
             width: 40,
             height: 4,
@@ -878,7 +906,9 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
           const SizedBox(height: 14),
           _field('Phone Number', _phoneCtrl, Icons.phone_outlined),
           const SizedBox(height: 14),
-          _field('Location', _locCtrl, Icons.location_on_outlined),
+          _countryDropdown(),
+          const SizedBox(height: 14),
+          _field('City', _cityCtrl, Icons.location_city_outlined),
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
@@ -898,7 +928,8 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
                   widget.profile.copyWith(
                     name: _nameCtrl.text.trim(),
                     phoneNumber: _phoneCtrl.text.trim(),
-                    location: _locCtrl.text.trim(),
+                    country: _selectedCountry,
+                    city: _cityCtrl.text.trim(),
                   ),
                 );
               },
@@ -911,6 +942,83 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
         ],
       ),
     );
+  }
+
+  Widget _countryDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Country',
+          style: TextStyle(
+            fontSize: 13,
+            color: AppColors.textSecondaryFor(context),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 6),
+        InkWell(
+          onTap: _loadingCountries ? null : () => _pickCountry(),
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: AppColors.backgroundFor(context),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.public_outlined, color: AppColors.primary, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _selectedCountry.isNotEmpty
+                        ? _selectedCountry
+                        : _loadingCountries
+                            ? 'Loading...'
+                            : 'Select country',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: _selectedCountry.isNotEmpty
+                          ? AppColors.textPrimaryFor(context)
+                          : AppColors.textHintFor(context),
+                    ),
+                  ),
+                ),
+                Icon(Icons.arrow_drop_down, color: AppColors.textHintFor(context)),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _pickCountry() async {
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Select Country'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 400),
+            child: ListView(
+              shrinkWrap: true,
+              children: _countries.map((c) => ListTile(
+                dense: true,
+                title: Text(c, style: const TextStyle(fontSize: 14)),
+                onTap: () => Navigator.pop(ctx, c),
+              )).toList(),
+            ),
+          ),
+        ),
+        contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 4),
+      ),
+    );
+    if (result != null && mounted) {
+      setState(() => _selectedCountry = result);
+    }
   }
 
   Widget _field(String label, TextEditingController ctrl, IconData icon) {
