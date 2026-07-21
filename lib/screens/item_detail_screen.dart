@@ -32,6 +32,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
   String _ownerName = '';
   String _ownerId = '';
   bool _isLoading = true;
+  bool _isRented = false;
   List<Map<String, dynamic>> _reviews = [];
 
   @override
@@ -40,6 +41,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
     _tabController = TabController(length: 2, vsync: this);
     _loadItem();
     _loadReviews();
+    _checkRentalStatus();
   }
 
   @override
@@ -114,6 +116,17 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
     if (diff.inDays == 1) return '1 day ago';
     if (diff.inDays < 30) return '${diff.inDays} days ago';
     return '${(diff.inDays / 30).floor()} months ago';
+  }
+
+  Future<void> _checkRentalStatus() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('rentals')
+          .where('listingId', isEqualTo: widget.listingId)
+          .where('isCompleted', isEqualTo: false)
+          .get();
+      setState(() => _isRented = snapshot.docs.isNotEmpty);
+    } catch (_) {}
   }
 
   Future<void> _addReview() async {
@@ -935,45 +948,70 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
               Expanded(
                 child: SizedBox(
                   height: 50,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pushNamed(
-                        context,
-                        '/rental-request',
-                        arguments: {
-                          'itemName': _itemName,
-                          'itemPrice': _itemPrice,
-                          'ownerId': _ownerId,
-                        },
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF4820A),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.calendar_today_outlined,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          'Request to Rent',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
+                  child: _isRented
+                      ? Container(
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.red[50],
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.red),
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.block, color: Colors.red, size: 18),
+                              SizedBox(width: 8),
+                              Text(
+                                'Not available',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.red,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ElevatedButton(
+                          onPressed: () {
+                            Navigator.pushNamed(
+                              context,
+                              '/rental-request',
+                              arguments: {
+                                'itemName': _itemName,
+                                'itemPrice': _itemPrice,
+                                'ownerId': _ownerId,
+                                'listingId': widget.listingId,
+                              },
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFF4820A),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.calendar_today_outlined,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Request to Rent',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
                 ),
               ),
             ],

@@ -6,12 +6,14 @@ class RentalRequestScreen extends StatefulWidget {
   final String itemName;
   final String itemPrice;
   final String ownerId;
+  final String listingId;
 
   const RentalRequestScreen({
     super.key,
     required this.itemName,
     required this.itemPrice,
     required this.ownerId,
+    required this.listingId,
   });
 
   @override
@@ -105,6 +107,7 @@ class _RentalRequestScreenState extends State<RentalRequestScreen> {
       await FirebaseFirestore.instance.collection('rentalRequests').add({
         'itemName': widget.itemName,
         'itemPrice': widget.itemPrice,
+        'listingId': widget.listingId,
         'renterId': uid,
         'renterName': renterName,
         'ownerId': widget.ownerId,
@@ -127,10 +130,8 @@ class _RentalRequestScreenState extends State<RentalRequestScreen> {
         ),
       );
 
-      await Future.delayed(const Duration(seconds: 2));
-
       if (mounted) {
-        Navigator.popUntil(context, (route) => route.settings.name == '/home');
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
       }
     } catch (e) {
       if (!mounted) return;

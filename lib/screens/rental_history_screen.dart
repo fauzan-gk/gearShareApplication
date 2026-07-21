@@ -15,57 +15,45 @@ class RentalHistoryScreen extends StatefulWidget {
 class _RentalHistoryScreenState extends State<RentalHistoryScreen> {
   String _selectedFilter = 'All Rentals';
   final List<String> _filters = ['All Rentals', 'Active', 'Completed'];
-  List<RentalHistoryCard> _allRentals = [];
-  bool _isLoading = true;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadRentals();
-  }
-
-  Future<void> _loadRentals() async {
-    try {
-      final uid = FirebaseAuth.instance.currentUser!.uid;
-      final snapshot = await FirebaseFirestore.instance
-          .collection('rentals')
-          .where('renterId', isEqualTo: uid)
-          .orderBy('rentalDate', descending: true)
-          .get();
-
-      setState(() {
-        _allRentals = snapshot.docs.map((doc) {
-          final data = doc.data();
-          return RentalHistoryCard(
-            itemName: data['itemName'] ?? 'Unknown Item',
-            renterName: data['renterName'] ?? 'Unknown',
-            ownerPhone: data['ownerPhone'] ?? '',
-            rentalDate: _formatDate((data['rentalDate'] as Timestamp).toDate()),
-            returnDate: _formatDate((data['returnDate'] as Timestamp).toDate()),
-            totalAmount: data['totalAmount'] ?? 0,
-            isCompleted: data['isCompleted'] ?? false,
-          );
-        }).toList();
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  String _formatDate(DateTime date) {
+  String _formatDate(dynamic ts) {
+    if (ts == null) return '';
+    final date = (ts as Timestamp).toDate();
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
-  List<RentalHistoryCard> get _filteredRentals {
-    if (_selectedFilter == 'All Rentals') return _allRentals;
+  List<RentalHistoryCard> _buildCards(QuerySnapshot snapshot) {
+    return snapshot.docs.map((doc) {
+      final data = doc.data() as Map<String, dynamic>;
+      return RentalHistoryCard(
+        itemName: data['itemName'] ?? 'Unknown Item',
+        renterName: data['renterName'] ?? 'Unknown',
+        ownerPhone: data['ownerPhone'] ?? '',
+        rentalDate: _formatDate(data['startDate']),
+        returnDate: _formatDate(data['endDate']),
+        totalAmount: data['totalAmount'] ?? 0,
+        isCompleted: data['isCompleted'] ?? false,
+      );
+    }).toList()
+      ..sort((a, b) {
+        final aDone = a.isCompleted ? 1 : 0;
+        final bDone = b.isCompleted ? 1 : 0;
+        if (aDone != bDone) return aDone - bDone;
+        return 0;
+      });
+  }
+
+  List<RentalHistoryCard> _filter(List<RentalHistoryCard> cards) {
+    if (_selectedFilter == 'All Rentals') return cards;
     final wantsCompleted = _selectedFilter == 'Completed';
-    return _allRentals.where((r) => r.isCompleted == wantsCompleted).toList();
+    return cards.where((r) => r.isCompleted == wantsCompleted).toList();
   }
 
   @override
   Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+
     return Scaffold(
       appBar: const CustomAppBar(title: 'Rental History'),
       drawer: const AppDrawer(currentRoute: '/rental-history'),
@@ -115,17 +103,37 @@ class _RentalHistoryScreenState extends State<RentalHistoryScreen> {
           ),
 
           Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _filteredRentals.isEmpty
-                    ? _buildEmptyState()
-                    : ListView.separated(
+            child: uid == null
+                ? const Center(child: Text('Please log in'))
+                : StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('rentals')
+                        .where('renterId', isEqualTo: uid)
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Text('Error: ${snapshot.error}'),
+                        );
+                      }
+                      if (!snapshot.hasData) return _buildEmptyState();
+                      final allCards = _buildCards(snapshot.data!);
+                      final filtered = _filter(allCards);
+                      if (filtered.isEmpty) {
+                        return _buildEmptyState();
+                      }
+                      return ListView.separated(
                         padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                        itemCount: _filteredRentals.length,
+                        itemCount: filtered.length,
                         separatorBuilder: (context, index) =>
                             const SizedBox(height: 14),
-                        itemBuilder: (context, index) => _filteredRentals[index],
-                      ),
+                        itemBuilder: (context, index) => filtered[index],
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -144,7 +152,7 @@ class _RentalHistoryScreenState extends State<RentalHistoryScreen> {
           ),
           const SizedBox(height: 14),
           Text(
-            _isLoading ? 'Loading...' : 'No ${_selectedFilter.toLowerCase()} found',
+            'No ${_selectedFilter.toLowerCase()} found',
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,

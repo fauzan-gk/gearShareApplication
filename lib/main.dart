@@ -137,6 +137,7 @@ class GearShareApp extends StatelessWidget {
               itemName: args['itemName']!,
               itemPrice: args['itemPrice']!,
               ownerId: args['ownerId'] ?? '',
+              listingId: args['listingId'] ?? '',
             );
             break;
           }

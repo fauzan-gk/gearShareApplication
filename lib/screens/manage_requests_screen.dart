@@ -79,6 +79,7 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen>
             .get();
         final data = requestDoc.data() as Map<String, dynamic>;
         await FirebaseFirestore.instance.collection('rentals').add({
+          'listingId': data['listingId'] ?? '',
           'itemName': data['itemName'] ?? 'Unknown Item',
           'itemPrice': data['itemPrice'] ?? '',
           'renterId': data['renterId'] ?? '',
