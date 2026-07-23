@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/image_service.dart';
+import '../services/cnic_validator.dart';
 
 class RentalRequestScreen extends StatefulWidget {
   final String itemName;
@@ -23,7 +25,9 @@ class RentalRequestScreen extends StatefulWidget {
 class _RentalRequestScreenState extends State<RentalRequestScreen> {
   DateTime? _startDate;
   DateTime? _endDate;
-  String _pickupMethod = 'Self Pickup'; // default selected radio option
+  String _pickupMethod = 'Self Pickup';
+  PickedImage? _cnicImage;
+  bool _isUploading = false;
 
   final _messageController = TextEditingController();
 
@@ -31,6 +35,47 @@ class _RentalRequestScreenState extends State<RentalRequestScreen> {
   void dispose() {
     _messageController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickCnicImage() async {
+    final img = await ImageService.pickSingleImage();
+    if (img == null) return;
+    final result = await CnicValidator.validateImage(img.bytes);
+    if (!mounted) return;
+    if (!result.isValid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(child: Text(result.message ?? 'Invalid CNIC image')),
+            ],
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(result.detectedNumber != null
+                  ? 'CNIC detected: ${result.detectedNumber}'
+                  : 'CNIC verified'),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF1B2A4A),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+    setState(() => _cnicImage = img);
   }
 
   // Opens a calendar picker and stores the chosen date
@@ -76,6 +121,83 @@ class _RentalRequestScreenState extends State<RentalRequestScreen> {
     return '${date.day}/${date.month}/${date.year}';
   }
 
+  Future<bool> _showTermsDialog() async {
+    return await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.description_outlined, color: Color(0xFF1B2A4A)),
+            SizedBox(width: 8),
+            Text('Terms & Conditions'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1B2A4A).withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Rental Agreement',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: Color(0xFF1B2A4A),
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'By renting this item, you agree that:\n\n'
+                      '1. You will return the item within the agreed rental period.\n'
+                      '2. Late returns may result in additional charges.\n'
+                      '3. You are responsible for any damage during the rental period.\n'
+                      '4. The item must be returned in the same condition as received.\n'
+                      '5. You have provided accurate CNIC information for verification.\n'
+                      '6. Any disputes will be resolved between owner and renter.\n'
+                      '7. You understand that GearShare is a platform only and not '
+                      'liable for any disputes.',
+                      style: TextStyle(fontSize: 12, height: 1.5),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1B2A4A),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'I Agree',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    ) ?? false;
+  }
+
   void _submitRequest() async {
     if (_startDate == null || _endDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -83,10 +205,29 @@ class _RentalRequestScreenState extends State<RentalRequestScreen> {
       );
       return;
     }
+    if (_cnicImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please upload your CNIC image')),
+      );
+      return;
+    }
 
+    final agreed = await _showTermsDialog();
+    if (!agreed || !mounted) return;
+
+    setState(() => _isUploading = true);
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
+
+      if (uid == widget.ownerId) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('You cannot rent your own item')),
+        );
+        setState(() => _isUploading = false);
+        return;
+      }
 
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
@@ -104,6 +245,8 @@ class _RentalRequestScreenState extends State<RentalRequestScreen> {
         ownerPhone = ownerDoc.data()?['phone'] as String? ?? '';
       }
 
+      final cnicUrl = await ImageService.uploadImage(_cnicImage!, uid, 'cnic');
+
       await FirebaseFirestore.instance.collection('rentalRequests').add({
         'itemName': widget.itemName,
         'itemPrice': widget.itemPrice,
@@ -112,6 +255,7 @@ class _RentalRequestScreenState extends State<RentalRequestScreen> {
         'renterName': renterName,
         'ownerId': widget.ownerId,
         'ownerPhone': ownerPhone,
+        'renterCnicUrl': cnicUrl,
         'totalAmount': price * _totalDays,
         'startDate': Timestamp.fromDate(_startDate!),
         'endDate': Timestamp.fromDate(_endDate!),
@@ -123,6 +267,7 @@ class _RentalRequestScreenState extends State<RentalRequestScreen> {
       });
 
       if (!mounted) return;
+      setState(() => _isUploading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Rental request sent for ${widget.itemName}'),
@@ -135,6 +280,7 @@ class _RentalRequestScreenState extends State<RentalRequestScreen> {
       }
     } catch (e) {
       if (!mounted) return;
+      setState(() => _isUploading = false);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Failed to send request: $e')));
@@ -349,6 +495,90 @@ class _RentalRequestScreenState extends State<RentalRequestScreen> {
               const SizedBox(height: 12),
 
               const Text(
+                'CNIC Verification',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1B2A4A),
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Upload a clear image of your CNIC for identity verification',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 12),
+              GestureDetector(
+                onTap: _pickCnicImage,
+                child: Container(
+                  width: double.infinity,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _cnicImage != null
+                          ? const Color(0xFFF4820A)
+                          : Colors.grey[300]!,
+                      width: 2,
+                    ),
+                  ),
+                  child: _cnicImage != null
+                      ? Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Image.memory(
+                                _cnicImage!.bytes,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            Positioned(
+                              top: 6,
+                              right: 6,
+                              child: GestureDetector(
+                                onTap: () => setState(() => _cnicImage = null),
+                                child: Container(
+                                  decoration: const BoxDecoration(
+                                    color: Colors.black54,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  padding: const EdgeInsets.all(4),
+                                  child: const Icon(
+                                    Icons.close_rounded,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.badge_outlined,
+                              size: 36,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Tap to upload CNIC',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              const Text(
                 'Message to Owner (optional)',
                 style: TextStyle(
                   fontSize: 16,
@@ -375,21 +605,30 @@ class _RentalRequestScreenState extends State<RentalRequestScreen> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: _submitRequest,
+                  onPressed: _isUploading ? null : _submitRequest,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFF4820A),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Send Rental Request',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: _isUploading
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Send Rental Request',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
             ],

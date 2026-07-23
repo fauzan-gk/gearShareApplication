@@ -33,6 +33,9 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
   String _ownerId = '';
   bool _isLoading = true;
   bool _isRented = false;
+  bool _isOwner = false;
+  bool _hasInsurance = false;
+  String _securityDeposit = '';
   List<Map<String, dynamic>> _reviews = [];
 
   @override
@@ -76,6 +79,10 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
           _itemLocation = data['location'] ?? 'Unknown';
           _ownerName = data['ownerName'] ?? 'Unknown';
           _ownerId = data['ownerId'] ?? '';
+          final currentUid = FirebaseAuth.instance.currentUser?.uid;
+          _isOwner = currentUid != null && currentUid == _ownerId;
+          _hasInsurance = data['hasInsurance'] ?? false;
+          _securityDeposit = data['securityDeposit'] ?? '';
           _isLoading = false;
         });
       } else {
@@ -94,11 +101,24 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
           .collection('reviews')
           .orderBy('timestamp', descending: true)
           .get();
+
+      final Set<String> verifiedRenterIds = {};
+      try {
+        final rentalsSnapshot = await FirebaseFirestore.instance
+            .collection('rentals')
+            .where('listingId', isEqualTo: widget.listingId)
+            .where('isCompleted', isEqualTo: true)
+            .get();
+        verifiedRenterIds.addAll(rentalsSnapshot.docs.map((d) => d['renterId'] as String? ?? ''));
+      } catch (_) {}
+
       final reviews = snapshot.docs.map((doc) => {
+            'userId': doc['userId'] as String? ?? '',
             'name': doc['userName'] ?? 'Anonymous',
             'rating': doc['rating'] ?? 5,
             'date': _formatTimestamp(doc['timestamp']),
             'comment': doc['comment'] ?? '',
+            'isVerifiedRenter': verifiedRenterIds.contains(doc['userId'] as String? ?? ''),
           }).toList();
       setState(() {
         _reviews = reviews;
@@ -125,7 +145,12 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
           .where('listingId', isEqualTo: widget.listingId)
           .where('isCompleted', isEqualTo: false)
           .get();
-      setState(() => _isRented = snapshot.docs.isNotEmpty);
+      final now = DateTime.now();
+      final active = snapshot.docs.any((doc) {
+        final end = doc.data()['endDate'] as Timestamp?;
+        return end != null && end.toDate().isAfter(now);
+      });
+      if (mounted) setState(() => _isRented = active);
     } catch (_) {}
   }
 
@@ -184,6 +209,43 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
       return 'Rs. $cleanPrice';
     }
     return 'Rs. $cleanPrice / day';
+  }
+
+  Widget _insuranceRow() {
+    return Row(
+      children: [
+        Icon(
+          _hasInsurance ? Icons.check_circle : Icons.cancel,
+          size: 16,
+          color: _hasInsurance ? Colors.green : Colors.red,
+        ),
+        const SizedBox(width: 8),
+        Text(
+          _hasInsurance ? 'Insurance included' : 'No insurance',
+          style: const TextStyle(fontSize: 13, color: Colors.black87),
+        ),
+      ],
+    );
+  }
+
+  Widget _depositRow() {
+    final hasDeposit = _securityDeposit.isNotEmpty;
+    return Row(
+      children: [
+        Icon(
+          hasDeposit ? Icons.security : Icons.security_outlined,
+          size: 16,
+          color: hasDeposit ? const Color(0xFF1B2A4A) : Colors.grey,
+        ),
+        const SizedBox(width: 8),
+        Text(
+          hasDeposit
+              ? 'Security deposit: Rs. $_securityDeposit'
+              : 'No security deposit required',
+          style: const TextStyle(fontSize: 13, color: Colors.black87),
+        ),
+      ],
+    );
   }
 
   @override
@@ -373,23 +435,27 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.green.withValues(alpha: 0.08),
+                        color: _isRented
+                            ? Colors.red.withValues(alpha: 0.08)
+                            : Colors.green.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            Icons.check_circle_outline,
+                            _isRented
+                                ? Icons.block
+                                : Icons.check_circle_outline,
                             size: 16,
-                            color: Colors.green,
+                            color: _isRented ? Colors.red : Colors.green,
                           ),
-                          SizedBox(width: 4),
+                          const SizedBox(width: 4),
                           Text(
-                            'Available',
+                            _isRented ? 'Not available' : 'Available',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.green,
+                              color: _isRented ? Colors.red : Colors.green,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -608,47 +674,21 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                                   width: 1,
                                 ),
                               ),
-                              child: const Column(
+                              child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    '📦 What\'s Included',
+                                  const Text(
+                                    '🛡️ Insurance & Deposit',
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                       color: Color(0xFF1B2A4A),
                                     ),
                                   ),
-                                  SizedBox(height: 8),
-                                  Column(
-                                    children: [
-                                      _IncludedItem(
-                                        icon: Icons.camera_alt_outlined,
-                                        text: 'Camera body with lens',
-                                      ),
-                                      _IncludedItem(
-                                        icon: Icons
-                                            .battery_charging_full_outlined,
-                                        text: '2x Original batteries',
-                                      ),
-                                      _IncludedItem(
-                                        icon: Icons.charging_station_outlined,
-                                        text: 'Charger & USB cable',
-                                      ),
-                                      _IncludedItem(
-                                        icon: Icons.sd_storage_outlined,
-                                        text: '64GB Memory card',
-                                      ),
-                                      _IncludedItem(
-                                        icon: Icons.backpack_outlined,
-                                        text: 'Carry case with strap',
-                                      ),
-                                      _IncludedItem(
-                                        icon: Icons.cleaning_services_outlined,
-                                        text: 'Cleaning kit',
-                                      ),
-                                    ],
-                                  ),
+                                  const SizedBox(height: 8),
+                                  _insuranceRow(),
+                                  const SizedBox(height: 6),
+                                  _depositRow(),
                                 ],
                               ),
                             ),
@@ -719,6 +759,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                                             rating: review['rating'],
                                             date: review['date'],
                                             comment: review['comment'],
+                                            isVerifiedRenter: review['isVerifiedRenter'] ?? false,
                                           ),
                                           if (index < _reviews.length - 1)
                                             Divider(
@@ -972,46 +1013,70 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                             ],
                           ),
                         )
-                      : ElevatedButton(
-                          onPressed: () {
-                            Navigator.pushNamed(
-                              context,
-                              '/rental-request',
-                              arguments: {
-                                'itemName': _itemName,
-                                'itemPrice': _itemPrice,
-                                'ownerId': _ownerId,
-                                'listingId': widget.listingId,
+                      : _isOwner
+                          ? Container(
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[200],
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey),
+                              ),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.person, color: Colors.grey, size: 18),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Your own item',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : ElevatedButton(
+                              onPressed: () {
+                                Navigator.pushNamed(
+                                  context,
+                                  '/rental-request',
+                                  arguments: {
+                                    'itemName': _itemName,
+                                    'itemPrice': _itemPrice,
+                                    'ownerId': _ownerId,
+                                    'listingId': widget.listingId,
+                                  },
+                                );
                               },
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFF4820A),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.calendar_today_outlined,
-                                color: Colors.white,
-                                size: 18,
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                'Request to Rent',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFF4820A),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
+                                elevation: 0,
                               ),
-                            ],
-                          ),
-                        ),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.calendar_today_outlined,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Request to Rent',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                 ),
               ),
             ],
@@ -1107,42 +1172,19 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
   }
 }
 
-class _IncludedItem extends StatelessWidget {
-  final IconData icon;
-  final String text;
-
-  const _IncludedItem({required this.icon, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: const Color(0xFFF4820A)),
-          const SizedBox(width: 8),
-          Text(
-            text,
-            style: const TextStyle(color: Colors.black87, fontSize: 13),
-          ),
-        ],
-      ),
-    );
-  }
-
-}
-
 class _ReviewTile extends StatelessWidget {
   final String name;
   final int rating;
   final String date;
   final String comment;
+  final bool isVerifiedRenter;
 
   const _ReviewTile({
     required this.name,
     required this.rating,
     required this.date,
     required this.comment,
+    this.isVerifiedRenter = false,
   });
 
   @override
@@ -1174,16 +1216,39 @@ class _ReviewTile extends StatelessWidget {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: Color(0xFF1B2A4A),
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          name,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: Color(0xFF1B2A4A),
+                          ),
+                        ),
+                        if (isVerifiedRenter) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                            ),
+                            child: const Text(
+                              'Previous renter',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.green,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                  ),
-                  Row(
+                    Row(
                     children: [
                       ...List.generate(5, (index) {
                         return Icon(

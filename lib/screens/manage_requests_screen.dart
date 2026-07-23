@@ -85,6 +85,7 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen>
           'renterId': data['renterId'] ?? '',
           'renterName': data['renterName'] ?? 'Unknown',
           'ownerPhone': data['ownerPhone'] ?? '',
+          'renterCnicUrl': data['renterCnicUrl'] ?? '',
           'startDate': data['startDate'],
           'endDate': data['endDate'],
           'totalDays': data['totalDays'] ?? 0,
@@ -92,6 +93,13 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen>
           'isCompleted': false,
           'createdAt': FieldValue.serverTimestamp(),
         });
+        final listingId = data['listingId'] as String? ?? '';
+        if (listingId.isNotEmpty) {
+          await FirebaseFirestore.instance
+              .collection('listings')
+              .doc(listingId)
+              .update({'isAvailable': false});
+        }
       }
 
       if (!mounted) return;

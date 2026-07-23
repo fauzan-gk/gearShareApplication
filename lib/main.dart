@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'config/supabase_config.dart';
 import 'providers/theme_provider.dart';
+import 'services/fcm_service.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -26,6 +27,8 @@ import 'screens/edit_profile_screen.dart';
 import 'screens/ratings_screen.dart';
 import 'screens/settings_screen.dart';
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -33,6 +36,8 @@ void main() async {
     url: supabaseUrl,
     publishableKey: supabasePublishableKey,
   );
+  FcmService.setNavigatorKey(navigatorKey);
+  FcmService().initialize();
   runApp(
     ChangeNotifierProvider(
       create: (_) => ThemeProvider(),
@@ -49,6 +54,7 @@ class GearShareApp extends StatelessWidget {
     final themeProvider = context.watch<ThemeProvider>();
 
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'GearShare',
       debugShowCheckedModeBanner: false,
       themeMode: themeProvider.themeMode,

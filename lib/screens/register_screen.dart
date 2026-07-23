@@ -295,6 +295,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               'listings': 0,
               'rentals': 0,
               'rating': 0.0,
+              'fcmToken': '',
               'createdAt': FieldValue.serverTimestamp(),
             });
 

@@ -35,6 +35,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _cityController = TextEditingController();
+  final TextEditingController _depositController = TextEditingController();
 
   String _selectedCountry = '';
   List<String> _countries = [];
@@ -45,6 +46,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
   String? _selectedCategory;
   bool _isAvailable = true;
   bool _isFeatured = false;
+  bool _hasInsurance = false;
   String _condition = 'Good';
   final List<PickedImage> _pickedImages = [];
   bool _isUploading = false;
@@ -99,6 +101,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
     _priceController.dispose();
     _descriptionController.dispose();
     _cityController.dispose();
+    _depositController.dispose();
     super.dispose();
   }
 
@@ -142,6 +145,133 @@ class _AddItemScreenState extends State<AddItemScreen> {
     setState(() => _pickedImages.removeAt(index));
   }
 
+  Future<String?> _showCnicTermsDialog() {
+    final cnicController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Row(
+              children: [
+                Icon(Icons.description_outlined, color: Color(0xFF1B2A4A)),
+                SizedBox(width: 8),
+                Text('Terms & Conditions'),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1B2A4A).withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Liability Agreement',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: Color(0xFF1B2A4A),
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'By listing your item on GearShare, you agree that:\n\n'
+                          '1. You are the rightful owner of this item.\n'
+                          '2. The item is in the condition described.\n'
+                          '3. You will be held responsible for any misrepresentation.\n'
+                          '4. GearShare is not liable for any disputes between '
+                          'owners and renters.\n'
+                          '5. You consent to share your CNIC information for '
+                          'verification and liability purposes.',
+                          style: TextStyle(fontSize: 12, height: 1.5),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'CNIC Verification',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: Color(0xFF1B2A4A),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Enter your CNIC number to verify your identity.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 12),
+                  Form(
+                    key: formKey,
+                    child: TextFormField(
+                      controller: cnicController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 15,
+                      decoration: InputDecoration(
+                        labelText: 'CNIC Number',
+                        hintText: 'XXXXX-XXXXXXX-X',
+                        prefixIcon: const Icon(Icons.badge_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        counterText: '',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'CNIC is required';
+                        }
+                        final digits = value.replaceAll(RegExp(r'[^0-9]'), '');
+                        if (digits.length != 13) {
+                          return 'CNIC must be exactly 13 digits';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1B2A4A),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: () {
+                  if (formKey.currentState!.validate()) {
+                    Navigator.pop(ctx, cnicController.text.trim());
+                  }
+                },
+                child: const Text(
+                  'Agree & Continue',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+        ),
+      ),
+    );
+  }
+
   void _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCountry.isEmpty) {
@@ -152,22 +282,33 @@ class _AddItemScreenState extends State<AddItemScreen> {
       return;
     }
 
-    setState(() => _isUploading = true);
-    try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) {
-        setState(() => _isUploading = false);
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('You must be logged in')),
-        );
-        return;
-      }
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You must be logged in')),
+      );
+      return;
+    }
 
-      final userDoc = await FirebaseFirestore.instance
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .get();
+    String cnic = userDoc.data()?['cnic'] as String? ?? '';
+
+    if (cnic.isEmpty) {
+      final result = await _showCnicTermsDialog();
+      if (result == null || result.isEmpty) return;
+      cnic = result;
+      await FirebaseFirestore.instance
           .collection('users')
           .doc(uid)
-          .get();
+          .set({'cnic': cnic}, SetOptions(merge: true));
+    }
+
+    setState(() => _isUploading = true);
+    try {
       final ownerName = userDoc.data()?['name'] as String? ?? 'Unknown';
 
       List<String> imageUrls = [];
@@ -190,7 +331,10 @@ class _AddItemScreenState extends State<AddItemScreen> {
         'city': _cityController.text.trim(),
         'isAvailable': _isAvailable,
         'isFeatured': _isFeatured,
+        'hasInsurance': _hasInsurance,
+        'securityDeposit': _depositController.text.trim(),
         'ownerId': uid,
+        'ownerCnic': cnic,
         'ownerName': ownerName,
         'imageUrls': imageUrls,
         'createdAt': FieldValue.serverTimestamp(),
@@ -220,9 +364,11 @@ class _AddItemScreenState extends State<AddItemScreen> {
       _priceController.clear();
       _descriptionController.clear();
       _cityController.clear();
+      _depositController.clear();
       setState(() {
         _selectedCategory = null;
         _isAvailable = true;
+        _hasInsurance = false;
         _condition = 'Good';
         _pickedImages.clear();
       });
@@ -686,6 +832,71 @@ class _AddItemScreenState extends State<AddItemScreen> {
                           value == null || value.trim().isEmpty
                           ? 'Please enter a city'
                           : null,
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Insurance Switch
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: _hasInsurance
+                            ? Colors.blue.withValues(alpha: 0.05)
+                            : Colors.grey.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: _hasInsurance
+                              ? Colors.blue.withValues(alpha: 0.2)
+                              : Colors.grey.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text(
+                            'Insurance included',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                          subtitle: Text(
+                            _hasInsurance
+                                ? 'Renter is covered by insurance'
+                                : 'No insurance coverage',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          value: _hasInsurance,
+                          activeThumbColor: Colors.blue,
+                          activeTrackColor: Colors.blue.withValues(alpha: 0.3),
+                          onChanged: (bool value) =>
+                              setState(() => _hasInsurance = value),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Security Deposit
+                    TextFormField(
+                      controller: _depositController,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: _buildInputDecoration(
+                        'Security Deposit (leave empty if not required)',
+                        Icons.security_outlined,
+                      ),
+                      validator: (value) {
+                        if (value != null && value.isNotEmpty) {
+                          if (double.tryParse(value) == null) {
+                            return 'Enter a valid amount';
+                          }
+                          if (double.parse(value) <= 0) {
+                            return 'Amount must be greater than 0';
+                          }
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 14),
 

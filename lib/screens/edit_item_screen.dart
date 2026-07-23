@@ -47,6 +47,8 @@ class _EditItemScreenState extends State<EditItemScreen> {
   bool _isLoading = false;
   bool _isInitialLoading = true;
   bool _isFeatured = false;
+  bool _hasInsurance = false;
+  final _depositController = TextEditingController();
   String _condition = 'Good';
   List<String> _existingImageUrls = [];
   final List<PickedImage> _newImages = [];
@@ -131,6 +133,8 @@ class _EditItemScreenState extends State<EditItemScreen> {
       _availability = data['isAvailable'] == true ? 'Available' : 'Rented';
       _condition = data['condition'] ?? 'Good';
       _isFeatured = data['isFeatured'] ?? false;
+      _hasInsurance = data['hasInsurance'] ?? false;
+      _depositController.text = data['securityDeposit'] ?? '';
       _existingImageUrls = (data['imageUrls'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
@@ -153,6 +157,7 @@ class _EditItemScreenState extends State<EditItemScreen> {
     _priceController.dispose();
     _descriptionController.dispose();
     _cityController.dispose();
+    _depositController.dispose();
     super.dispose();
   }
 
@@ -249,6 +254,8 @@ class _EditItemScreenState extends State<EditItemScreen> {
         'city': _cityController.text.trim(),
         'condition': _condition,
         'isFeatured': _isFeatured,
+        'hasInsurance': _hasInsurance,
+        'securityDeposit': _depositController.text.trim(),
         'imageUrls': allImageUrls,
       });
 
@@ -664,6 +671,68 @@ class _EditItemScreenState extends State<EditItemScreen> {
                                 value == null || value.trim().isEmpty
                                 ? 'Please enter a city'
                                 : null,
+                          ),
+                          const SizedBox(height: 14),
+
+                          // Insurance Switch
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: _hasInsurance
+                                  ? Colors.blue.withValues(alpha: 0.05)
+                                  : Colors.grey.withValues(alpha: 0.05),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _hasInsurance
+                                    ? Colors.blue.withValues(alpha: 0.2)
+                                    : Colors.grey.withValues(alpha: 0.2),
+                              ),
+                            ),
+                            child: SwitchListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text(
+                                'Insurance included',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              subtitle: Text(
+                                _hasInsurance
+                                    ? 'Renter is covered by insurance'
+                                    : 'No insurance coverage',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              value: _hasInsurance,
+                              activeThumbColor: Colors.blue,
+                              activeTrackColor: Colors.blue.withValues(alpha: 0.3),
+                              onChanged: (bool value) =>
+                                  setState(() => _hasInsurance = value),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+
+                          // Security Deposit
+                          TextFormField(
+                            controller: _depositController,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: _buildInputDecoration(
+                              'Security Deposit (leave empty if not required)',
+                              Icons.security_outlined,
+                            ),
+                            validator: (value) {
+                              if (value != null && value.isNotEmpty) {
+                                if (double.tryParse(value) == null) {
+                                  return 'Enter a valid amount';
+                                }
+                                if (double.parse(value) <= 0) {
+                                  return 'Amount must be greater than 0';
+                                }
+                              }
+                              return null;
+                            },
                           ),
                           const SizedBox(height: 14),
 

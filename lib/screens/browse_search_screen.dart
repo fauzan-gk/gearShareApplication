@@ -47,7 +47,10 @@ class GearItem {
       location: data['location'] ?? 'Unknown',
       country: data['country'] ?? '',
       city: data['city'] ?? '',
-      imageUrl: (data['imageUrls'] is List && (data['imageUrls'] as List).isNotEmpty) ? (data['imageUrls'] as List).first.toString() : '',
+      imageUrl:
+          (data['imageUrls'] is List && (data['imageUrls'] as List).isNotEmpty)
+          ? (data['imageUrls'] as List).first.toString()
+          : '',
     );
   }
 }
@@ -128,7 +131,6 @@ class _BrowseSearchScreenState extends State<BrowseSearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
       appBar: CustomAppBar(
         title: 'Browse Gear',
         actions: [
@@ -229,7 +231,9 @@ class _BrowseSearchScreenState extends State<BrowseSearchScreen> {
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: isSelected ? AppColors.primary : AppColors.surfaceFor(context),
+                      color: isSelected
+                          ? AppColors.primary
+                          : AppColors.surfaceFor(context),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: isSelected
@@ -386,9 +390,7 @@ class _BrowseSearchScreenState extends State<BrowseSearchScreen> {
                                   onTap: () => Navigator.pushNamed(
                                     context,
                                     '/item-detail',
-                                    arguments: {
-                                      'listingId': item.id,
-                                    },
+                                    arguments: {'listingId': item.id},
                                   ),
                                 );
                               },
@@ -512,7 +514,10 @@ class _BrowseSearchScreenState extends State<BrowseSearchScreen> {
               _searchQuery.isEmpty
                   ? 'No items in this category'
                   : 'Try adjusting your search or filters',
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondaryFor(context)),
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondaryFor(context),
+              ),
             ),
             const SizedBox(height: 20),
             if (_searchQuery.isNotEmpty || _selectedFilter != 'All')
@@ -605,14 +610,14 @@ class _GearListItem extends StatelessWidget {
                       child: CachedNetworkImage(
                         imageUrl: item.imageUrl,
                         fit: BoxFit.cover,
-placeholder: (_, _) => Center(
-                           child: Icon(
-                             _iconForCategory(item.category),
-                             size: 32,
-                             color: AppColors.primary.withValues(alpha: 0.5),
-                           ),
-                         ),
-                         errorWidget: (_, _, _) => Center(
+                        placeholder: (_, _) => Center(
+                          child: Icon(
+                            _iconForCategory(item.category),
+                            size: 32,
+                            color: AppColors.primary.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        errorWidget: (_, _, _) => Center(
                           child: Icon(
                             _iconForCategory(item.category),
                             size: 32,
@@ -777,7 +782,10 @@ placeholder: (_, _) => Center(
               ),
             ),
             const SizedBox(width: 4),
-            Icon(Icons.chevron_right_rounded, color: AppColors.textHintFor(context)),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.textHintFor(context),
+            ),
           ],
         ),
       ),
