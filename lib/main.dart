@@ -126,45 +126,42 @@ class GearShareApp extends StatelessWidget {
           case '/settings':
             page = const SettingsScreen();
             break;
-          case '/item-detail': {
-            final args = settings.arguments as Map<String, String>;
-            page = ItemDetailScreen(listingId: args['listingId']!);
-            break;
-          }
-          case '/rental-request': {
-            final args = settings.arguments as Map<String, String>;
-            page = RentalRequestScreen(
-              itemName: args['itemName']!,
-              itemPrice: args['itemPrice']!,
-              ownerId: args['ownerId'] ?? '',
-              listingId: args['listingId'] ?? '',
-            );
-            break;
-          }
-          case '/edit-item': {
-            final args = settings.arguments as Map<String, String>;
-            page = EditItemScreen(listingId: args['listingId']!);
-            break;
-          }
+          case '/item-detail':
+            {
+              final args = settings.arguments as Map<String, String>;
+              page = ItemDetailScreen(listingId: args['listingId']!);
+              break;
+            }
+          case '/rental-request':
+            {
+              final args = settings.arguments as Map<String, String>;
+              page = RentalRequestScreen(
+                itemName: args['itemName']!,
+                itemPrice: args['itemPrice']!,
+                ownerId: args['ownerId'] ?? '',
+                listingId: args['listingId'] ?? '',
+              );
+              break;
+            }
+          case '/edit-item':
+            {
+              final args = settings.arguments as Map<String, String>;
+              page = EditItemScreen(listingId: args['listingId']!);
+              break;
+            }
           default:
-            page = const Scaffold(
-              body: Center(child: Text('Page not found')),
-            );
+            page = const Scaffold(body: Center(child: Text('Page not found')));
         }
         return PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) => page,
-          transitionsBuilder: (
-            context,
-            animation,
-            secondaryAnimation,
-            child,
-          ) {
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
             const begin = Offset(0.0, 0.03);
             const end = Offset.zero;
             const curve = Curves.easeInOutCubic;
-            final tween = Tween(begin: begin, end: end).chain(
-              CurveTween(curve: curve),
-            );
+            final tween = Tween(
+              begin: begin,
+              end: end,
+            ).chain(CurveTween(curve: curve));
             return FadeTransition(
               opacity: animation,
               child: SlideTransition(
