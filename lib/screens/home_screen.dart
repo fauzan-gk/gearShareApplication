@@ -4,6 +4,7 @@ import '../constants/app_colors.dart';
 import '../constants/custom_app_bar.dart';
 import '../constants/app_drawer.dart';
 import '../constants/custom_bottom_nav.dart';
+import '../constants/shimmer_loading.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -174,110 +175,72 @@ class _HomeScreenState extends State<HomeScreen> {
             // ── FEATURED BANNER ─────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-              child: Container(
-                height: 140,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.primary, AppColors.navyFor(context)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      right: -10,
-                      bottom: -10,
-                      child: Icon(
-                        Icons.bolt_rounded,
-                        size: 100,
-                        color: Colors.white.withValues(alpha: 0.1),
+              child: GestureDetector(
+                onTap: () => Navigator.pushNamed(context, '/browse-search'),
+                  child: Container(
+                    height: 150,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppColors.primary, const Color(0xFFD06A00)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: AppColors.elevatedShadow,
                     ),
-                    Positioned(
-                      left: 30,
-                      top: -20,
-                      child: Icon(
-                        Icons.explore_rounded,
-                        size: 80,
-                        color: Colors.white.withValues(alpha: 0.08),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Row(
+                    child: Stack(
+                      children: [
+                        Positioned(
+                          right: -20, bottom: -20,
+                          child: Icon(Icons.bolt_rounded, size: 140, color: Colors.white.withValues(alpha: 0.08)),
+                        ),
+                        Positioned(
+                          left: 40, top: -30,
+                          child: Icon(Icons.explore_rounded, size: 100, color: Colors.white.withValues(alpha: 0.06)),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 4,
-                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                 decoration: BoxDecoration(
                                   color: Colors.white.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: const Text(
-                                  '🔥 Trending',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text('🔥', style: TextStyle(fontSize: 11)),
+                                    SizedBox(width: 3),
+                                    Text('Trending', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600)),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text('Popular Gear Near You', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold, letterSpacing: 0.3)),
+                              const SizedBox(height: 3),
+                              Text('Find the most rented equipment in your area', style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 11)),
+                              const Spacer(),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text('Explore Now', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 11)),
+                                    const SizedBox(width: 3),
+                                    Icon(Icons.arrow_forward_ios, size: 9, color: AppColors.primary),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Popular Gear Near You',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Find the most rented equipment in your area',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.8),
-                              fontSize: 12,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  'View All →',
-                                  style: TextStyle(
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
               ),
             ),
 
@@ -310,7 +273,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             SizedBox(
-              height: 80,
+              height: 90,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -319,7 +282,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   final category = _categories[index];
                   final color = Color(category['color'] as int);
                   return Padding(
-                    padding: const EdgeInsets.only(right: 14),
+                    padding: const EdgeInsets.only(right: 12),
                     child: GestureDetector(
                       onTap: () => Navigator.pushNamed(
                         context,
@@ -329,30 +292,23 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Column(
                         children: [
                           Container(
-                            width: 56,
-                            height: 56,
+                            width: 60,
+                            height: 60,
                             decoration: BoxDecoration(
-                              color: color.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: color.withValues(alpha: 0.2),
-                                width: 1,
+                              gradient: LinearGradient(
+                                colors: [color.withValues(alpha: 0.2), color.withValues(alpha: 0.05)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(color: color.withValues(alpha: 0.15), width: 1),
                             ),
-                            child: Icon(
-                              category['icon'] as IconData,
-                              color: color,
-                              size: 26,
-                            ),
+                            child: Icon(category['icon'] as IconData, color: color, size: 28),
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 8),
                           Text(
                             category['name'] as String,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.textSecondaryFor(context),
-                            ),
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondaryFor(context)),
                           ),
                         ],
                       ),
@@ -405,17 +361,17 @@ class _HomeScreenState extends State<HomeScreen> {
                     .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.primary,
-                      ),
-                    );
+                    return const FeaturedShimmer();
                   }
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        'No featured items yet',
-                        style: TextStyle(color: Colors.grey),
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.inventory_2_outlined, size: 40, color: Colors.grey[300]),
+                          const SizedBox(height: 8),
+                          Text('No featured items yet', style: TextStyle(color: Colors.grey[400], fontSize: 13)),
+                        ],
                       ),
                     );
                   }
@@ -498,22 +454,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(32),
-                      child: CircularProgressIndicator(
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  );
+                  return const RecentShimmer();
                 }
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(32),
-                      child: Text(
-                        'No listings yet',
-                        style: TextStyle(color: Colors.grey),
+                  return Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(Icons.inventory_2_outlined, size: 48, color: Colors.grey[300]),
+                          const SizedBox(height: 8),
+                          Text('No listings yet', style: TextStyle(color: Colors.grey[400], fontSize: 14)),
+                        ],
                       ),
                     ),
                   );
@@ -581,6 +533,7 @@ class _FeaturedItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -588,13 +541,7 @@ class _FeaturedItemCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surfaceFor(context),
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.navyFor(context).withValues(alpha: 0.06),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          boxShadow: AppColors.cardShadow,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -603,10 +550,8 @@ class _FeaturedItemCard extends StatelessWidget {
               height: 100,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.08),
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(16),
-                ),
+                color: isDark ? Colors.grey[850] : Colors.grey[100],
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
               ),
               clipBehavior: Clip.antiAlias,
               child: Stack(
@@ -616,59 +561,28 @@ class _FeaturedItemCard extends StatelessWidget {
                       child: CachedNetworkImage(
                         imageUrl: imageUrl,
                         fit: BoxFit.cover,
-                        placeholder: (_, _) => Center(
-                          child: Icon(
-                            Icons.image_outlined,
-                            size: 40,
-                            color: AppColors.primary.withValues(alpha: 0.5),
-                          ),
-                        ),
-                        errorWidget: (_, _, _) => Center(
-                          child: Icon(
-                            Icons.image_outlined,
-                            size: 40,
-                            color: AppColors.primary.withValues(alpha: 0.5),
-                          ),
-                        ),
+                        placeholder: (_, _) => const Center(child: Icon(Icons.image_outlined, size: 36, color: Colors.grey)),
+                        errorWidget: (_, _, _) => const Center(child: Icon(Icons.image_outlined, size: 36, color: Colors.grey)),
                       ),
                     )
                   else
-                    Center(
-                      child: Icon(
-                        Icons.image_outlined,
-                        size: 40,
-                        color: AppColors.primary.withValues(alpha: 0.5),
-                      ),
-                    ),
+                    const Center(child: Icon(Icons.image_outlined, size: 36, color: Colors.grey)),
                   Positioned(
                     top: 8,
                     right: 8,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
                         color: Colors.amber,
                         borderRadius: BorderRadius.circular(12),
+                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 4)],
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
-                            Icons.star_rounded,
-                            size: 12,
-                            color: Colors.white,
-                          ),
+                          const Icon(Icons.star_rounded, size: 12, color: Colors.white),
                           const SizedBox(width: 2),
-                          Text(
-                            rating.toString(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                          Text(rating.toStringAsFixed(1), style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600)),
                         ],
                       ),
                     ),
@@ -681,51 +595,18 @@ class _FeaturedItemCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  Text(name, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.textPrimaryFor(context)), maxLines: 1, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 2),
-                  Text(
-                    'by $owner',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: AppColors.textSecondaryFor(context),
-                    ),
-                  ),
+                  Text('by $owner', style: TextStyle(fontSize: 11, color: AppColors.textSecondaryFor(context))),
                   const SizedBox(height: 4),
-                  Text(
-                    price,
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
-                    ),
-                  ),
+                  Text(price, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 13)),
                   if (country.isNotEmpty) ...[
                     const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.public,
-                          size: 10,
-                          color: AppColors.textHintFor(context),
-                        ),
-                        const SizedBox(width: 2),
-                        Text(
-                          country,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: AppColors.textHintFor(context),
-                          ),
-                        ),
-                      ],
-                    ),
+                    Row(children: [
+                      Icon(Icons.location_on_outlined, size: 10, color: AppColors.textHintFor(context)),
+                      const SizedBox(width: 2),
+                      Text(country, style: TextStyle(fontSize: 10, color: AppColors.textHintFor(context))),
+                    ]),
                   ],
                 ],
               ),
@@ -759,127 +640,61 @@ class _RecentItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(14),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: AppColors.surfaceFor(context),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.navyFor(context).withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: AppColors.softShadow,
         ),
         child: Row(
           children: [
             Container(
-              width: 60,
-              height: 60,
+              width: 68,
+              height: 68,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(10),
+                color: isDark ? Colors.grey[850] : Colors.grey[100],
+                borderRadius: BorderRadius.circular(14),
               ),
               clipBehavior: Clip.antiAlias,
               child: imageUrl.isNotEmpty
                   ? CachedNetworkImage(
                       imageUrl: imageUrl,
                       fit: BoxFit.cover,
-                      placeholder: (_, _) => Icon(
-                        Icons.image_outlined,
-                        size: 28,
-                        color: AppColors.primary.withValues(alpha: 0.5),
-                      ),
-                      errorWidget: (_, _, _) => Icon(
-                        Icons.image_outlined,
-                        size: 28,
-                        color: AppColors.primary.withValues(alpha: 0.5),
-                      ),
+                      placeholder: (_, _) => const Center(child: Icon(Icons.image_outlined, size: 28, color: Colors.grey)),
+                      errorWidget: (_, _, _) => const Center(child: Icon(Icons.image_outlined, size: 28, color: Colors.grey)),
                     )
-                  : Icon(
-                      Icons.image_outlined,
-                      size: 28,
-                      color: AppColors.primary.withValues(alpha: 0.5),
-                    ),
+                  : const Center(child: Icon(Icons.image_outlined, size: 28, color: Colors.grey)),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'by $owner',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondaryFor(context),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Text(
-                        price,
-                        style: const TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.star_rounded,
-                            size: 14,
-                            color: Colors.amber,
-                          ),
-                          const SizedBox(width: 2),
-                          Text(
-                            rating.toString(),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondaryFor(context),
-                            ),
-                          ),
-                        ],
-                      ),
+                  Text(name, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppColors.textPrimaryFor(context)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 3),
+                  Text('by $owner', style: TextStyle(fontSize: 12, color: AppColors.textSecondaryFor(context))),
+                  const SizedBox(height: 6),
+                  Row(children: [
+                    Text(price, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 13)),
+                    const SizedBox(width: 10),
+                    Row(children: [
+                      const Icon(Icons.star_rounded, size: 14, color: Colors.amber),
+                      const SizedBox(width: 2),
+                      Text(rating.toStringAsFixed(1), style: TextStyle(fontSize: 12, color: AppColors.textSecondaryFor(context))),
+                    ]),
+                    if (country.isNotEmpty) ...[
+                      const Spacer(),
+                      Icon(Icons.location_on_outlined, size: 12, color: AppColors.textHintFor(context)),
+                      const SizedBox(width: 2),
+                      Text(country, style: TextStyle(fontSize: 11, color: AppColors.textHintFor(context))),
                     ],
-                  ),
-                  if (country.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.public,
-                          size: 11,
-                          color: AppColors.textHintFor(context),
-                        ),
-                        const SizedBox(width: 2),
-                        Text(
-                          country,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: AppColors.textHintFor(context),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                  ]),
                 ],
               ),
             ),

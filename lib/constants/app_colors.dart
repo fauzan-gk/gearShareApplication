@@ -76,6 +76,53 @@ class AppColors {
   static const Color error = Color(0xFFDC3545);
   static const Color warning = Color(0xFFFFC107);
 
+  // ---- Shadows ----
+  static List<BoxShadow> get cardShadow => [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.06),
+          blurRadius: 16,
+          offset: const Offset(0, 6),
+        ),
+      ];
+
+  static List<BoxShadow> get elevatedShadow => [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.1),
+          blurRadius: 24,
+          offset: const Offset(0, 8),
+        ),
+      ];
+
+  static List<BoxShadow> get softShadow => [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.04),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+        ),
+      ];
+
+  // ---- Gradients ----
+  static const LinearGradient primaryGradient = LinearGradient(
+    colors: [Color(0xFFF4820A), Color(0xFFFFA94D)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const LinearGradient navyGradient = LinearGradient(
+    colors: [Color(0xFF1B2A4A), Color(0xFF243660)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static LinearGradient categoryGradient(int color) => LinearGradient(
+        colors: [
+          Color(color).withValues(alpha: 0.9),
+          Color(color).withValues(alpha: 0.6),
+        ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      );
+
   // ---- Helper getters (context-aware) ----
   static Color backgroundFor(BuildContext context) =>
     Theme.of(context).brightness == Brightness.dark

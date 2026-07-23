@@ -6,8 +6,6 @@ class CustomBottomNav extends StatelessWidget {
 
   const CustomBottomNav({super.key, required this.currentIndex});
 
-  // Route names in the SAME ORDER as the nav items below.
-  // Index 4 (Profile) added — matches the reference ProfileScreen design.
   static const List<String> _routes = [
     '/home',
     '/browse-search',
@@ -17,7 +15,7 @@ class CustomBottomNav extends StatelessWidget {
   ];
 
   void _onTap(BuildContext context, int index) {
-    if (index == currentIndex) return; // already on this tab, do nothing
+    if (index == currentIndex) return;
     Navigator.pushReplacementNamed(context, _routes[index]);
   }
 
@@ -26,23 +24,21 @@ class CustomBottomNav extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
+      padding: const EdgeInsets.only(top: 4),
       decoration: BoxDecoration(
         color: AppColors.surfaceFor(context),
-        boxShadow: isDark
-            ? null
-            : [
-                BoxShadow(
-                  color: AppColors.navy.withValues(alpha: 0.08),
-                  blurRadius: 16,
-                  offset: const Offset(0, -4),
-                ),
-              ],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
       child: BottomNavigationBar(
         currentIndex: currentIndex,
         onTap: (index) => _onTap(context, index),
-        type: BottomNavigationBarType
-            .fixed, // keeps all labels visible with 5 items
+        type: BottomNavigationBarType.fixed,
         selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textHintFor(context),
         backgroundColor: AppColors.surfaceFor(context),
@@ -50,31 +46,35 @@ class CustomBottomNav extends StatelessWidget {
         showUnselectedLabels: true,
         selectedLabelStyle: const TextStyle(
           fontSize: 11,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.3,
         ),
-        unselectedLabelStyle: const TextStyle(fontSize: 11),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            label: "Home",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.grid_view_outlined),
-            label: "Browse",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.add_circle_outline),
-            label: "Add",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.list_alt_outlined),
-            label: "Listings",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: "Profile",
-          ),
-        ],
+        unselectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w400),
+        items: List.generate(5, (index) {
+          final isSelected = index == currentIndex;
+          late IconData icon;
+          late String label;
+          switch (index) {
+            case 0: icon = Icons.home_outlined; label = 'Home'; break;
+            case 1: icon = Icons.grid_view_outlined; label = 'Browse'; break;
+            case 2: icon = Icons.add_circle_outline; label = 'Add'; break;
+            case 3: icon = Icons.list_alt_outlined; label = 'Listings'; break;
+            case 4: icon = Icons.person_outline; label = 'Profile'; break;
+          }
+          return BottomNavigationBarItem(
+            icon: AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              padding: EdgeInsets.all(isSelected ? 8 : 0),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.primary.withValues(alpha: 0.12) : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, size: isSelected ? 26 : 24),
+            ),
+            label: label,
+          );
+        }),
       ),
     );
   }

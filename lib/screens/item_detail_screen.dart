@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../constants/shimmer_loading.dart';
 
 class ItemDetailScreen extends StatefulWidget {
   final String listingId;
@@ -253,9 +254,25 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
     if (_isLoading) {
       return Scaffold(
         backgroundColor: Colors.white,
-        body: Center(
-          child: CircularProgressIndicator(
-            color: const Color(0xFFF4820A),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ShimmerPlaceholder(height: 280, borderRadius: 20),
+                const SizedBox(height: 20),
+                ShimmerPlaceholder(height: 24, width: 200),
+                const SizedBox(height: 10),
+                ShimmerPlaceholder(height: 16, width: 160),
+                const SizedBox(height: 20),
+                ShimmerPlaceholder(height: 80),
+                const SizedBox(height: 16),
+                ShimmerPlaceholder(height: 120),
+                const SizedBox(height: 16),
+                ShimmerPlaceholder(height: 60),
+              ],
+            ),
           ),
         ),
       );
@@ -330,16 +347,17 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: List.generate(
                             _imageUrls.length,
-                            (index) => Container(
-                              margin:
-                                  const EdgeInsets.symmetric(horizontal: 3),
-                              width: _currentImageIndex == index ? 10 : 6,
-                              height: 6,
+                            (index) => AnimatedContainer(
+                              duration: const Duration(milliseconds: 250),
+                              curve: Curves.easeOutCubic,
+                              margin: const EdgeInsets.symmetric(horizontal: 3),
+                              width: _currentImageIndex == index ? 24 : 7,
+                              height: 7,
                               decoration: BoxDecoration(
                                 color: _currentImageIndex == index
-                                    ? Colors.white
-                                    : Colors.white.withValues(alpha: 0.4),
-                                borderRadius: BorderRadius.circular(3),
+                                    ? const Color(0xFFF4820A)
+                                    : Colors.white.withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.circular(4),
                               ),
                             ),
                           ),
